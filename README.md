@@ -19,6 +19,19 @@ XType extension for WeeWX to provide "Grünlandtemperatursumme" (a kind of growi
 
 There is no configuration needed.
 
+## Including in Skins:
+
+You can use the values provided by this extensions in all skins of WeeWX. You can show the values, and you can create a diagram. The following observation types are provided:
+
+* **GTS**: the value of "Grünlandtemperatursumme" itself (example tag: $current.GTS)
+* **GTSdate**: the date when the GTS value exceeds 200, which is considered the beginning of real spring (example tag: $day.GTSdate.last)
+* **utcoffsetLMT**: offfset of the local mean time (Ortszeit) at the station's location
+* **LMTtime**: a string showing the local mean time (Ortszeit) at the station's location (can only be used with ".raw", example tag: $current.LMTtime.raw)
+
+The values can be used together with every time period defined in the customization guide of WeeWX. There can be used aggregations as well. The following aggregations are defined: "**avg**", "**min**", "**max**", "**last**". Not all time spans are possible. 
+
+See http://weewx.com/docs/customizing.htm#Tags for details on how to use tags in skins.
+
 ## Algorithm:
 
 * GTS is calculated from the daily average temperatures. If the daily average temperature is above 0°C (32°F) it is used to add to the sum, otherwise it is discarded.
