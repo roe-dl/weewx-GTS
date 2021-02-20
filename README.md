@@ -14,6 +14,7 @@ XType extension for WeeWX to provide "Grünlandtemperatursumme" (a kind of growi
 3) restart weewx
 
    sudo /etc/init.d/weewx stop
+   
    sudo /etc/init.d/weewx start
 
 There is no configuration needed.
