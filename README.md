@@ -28,3 +28,8 @@ There is no configuration needed.
 * To get the GTS value of a day all the values as described above are added from January 1st to the day in question. So the GTS value increases in time.
 * If the GTS value exceeds 200 this event is considered the beginning of growing of the plants in spring.
 * The GTS value itself is calculated up to May 31st. The end value is considered a statement about the spring.
+
+## Sources:
+
+* http://www.groitzsch-wetter.de/HP/green1.html
+* http://www.regionalwetter-sa.de/sa_gruenland.php
