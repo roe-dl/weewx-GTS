@@ -26,9 +26,9 @@ You can use the values provided by this extensions in all skins of WeeWX. You ca
 ### Display values (CheetahGenerator)
 
 * **GTS**: the value of "Grünlandtemperatursumme" itself (example tag: $current.GTS)
-* **GTSdate**: the date when the GTS value exceeds 200, which is considered the beginning of real spring (example tag: $day.GTSdate.last)
+* **GTSdate**: the date when the GTS value exceeds 200, which is considered the beginning of real spring (example tag: `$day.GTSdate.last`)
 * **utcoffsetLMT**: offfset of the local mean time (Ortszeit) at the station's location
-* **LMTtime**: a string showing the local mean time (Ortszeit) at the station's location (can only be used with ".raw", example tag: $current.LMTtime.raw)
+* **LMTtime**: a string showing the local mean time (Ortszeit) at the station's location (can only be used with ".raw", example tag: `$current.LMTtime.raw`)
 
 The values can be used together with every time period defined in the customization guide of WeeWX. There can be used aggregations as well. The following aggregations are defined: "**avg**", "**min**", "**max**", "**last**". Not all time spans are possible. 
 
