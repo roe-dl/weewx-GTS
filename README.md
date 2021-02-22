@@ -19,9 +19,11 @@ XType extension for WeeWX to provide "Grünlandtemperatursumme" (a kind of growi
 
 There is no configuration needed.
 
-## Including in Skins:
+## Including in skins:
 
 You can use the values provided by this extensions in all skins of WeeWX. You can show the values, and you can create a diagram. The following observation types are provided:
+
+### Display values (CheetahGenerator)
 
 * **GTS**: the value of "Grünlandtemperatursumme" itself (example tag: $current.GTS)
 * **GTSdate**: the date when the GTS value exceeds 200, which is considered the beginning of real spring (example tag: $day.GTSdate.last)
@@ -31,6 +33,42 @@ You can use the values provided by this extensions in all skins of WeeWX. You ca
 The values can be used together with every time period defined in the customization guide of WeeWX. There can be used aggregations as well. The following aggregations are defined: "**avg**", "**min**", "**max**", "**last**". Not all time spans are possible. 
 
 See http://weewx.com/docs/customizing.htm#Tags for details on how to use tags in skins.
+
+### Diagrams (ImageGenerator)
+
+To create diagrams you need to include additional sections into the \[ImageGenerator\] section of skin.conf. What follows are examples. There are more possibilities than that.
+
+Within \[\[month_images\]\]:
+
+```
+        [[[monthGTS]]]
+            line_gap_fraction = 0.04
+            yscale = 0,None,None
+            aggregate_type = avg
+            aggregate_interval = 86400
+            [[[[GTS]]]]
+                label = Grünlandtemperatursumme
+```
+<img src="monthGTS.png" />
+  
+Within \[\[year_images\]\]:
+
+```
+        [[[yearGTS]]]
+            aggregate_type = avg
+            [[[[GTS]]]]
+                label = Grünlandtemperatursumme
+```
+<img src="yearGTS.png" />
+
+These examples create image files named 'monthGTS.png' or 'yearGTS.png', respectively. To display them within the web page approiate \<img\> tags need to be included for example in index.html.tmpl:
+  
+```
+<img src="monthGTS.png" />
+```
+```
+<img src="yearGTS.png" />
+```
 
 ## Algorithm:
 
