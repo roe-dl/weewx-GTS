@@ -12,7 +12,7 @@ class GTSInstaller(ExtensionInstaller):
         super(GTSInstaller, self).__init__(
             version="0.1",
             name='GTS',
-            description='Provides Grünlandtemperatursumme (GTS), a kind of growing degree days',
+            description='Provides Gruenlandtemperatursumme (GTS), a kind of growing degree days',
             author="Johanna Roedenbeck",
             author_email="",
             xtype_services='user.GTS.GTSService',
