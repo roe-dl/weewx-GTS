@@ -629,6 +629,14 @@ class GTSType(weewx.xtypes.XType):
             """
             return __x
 
+        if obs_type=='GTSdate':
+            if aggregate_type=='last' or aggregate_type=='max':
+                if _soye_ts in self.gts_date and self.gts_date[_soye_ts] is not None and timespan.stop>=self.gts_date[_soye_ts]:
+                    __x=self.gts_date[_soye_ts]
+                else:
+                    __x=None
+                return weewx.units.ValueTuple(__x,'unix_epoch','group_time')
+                    
         raise weewx.CannotCalculate("%s %s" % (obs_type,aggregate_type))
 
 # This is a WeeWX service, whose only job is to register and unregister the extension
