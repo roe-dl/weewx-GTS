@@ -16,6 +16,6 @@ class GTSInstaller(ExtensionInstaller):
             author="Johanna Roedenbeck",
             author_email="",
             xtype_services='user.GTS.GTSService',
-            config={}
+            config={},
             files=[('bin/user', ['bin/user/GTS.py'])]
             )
