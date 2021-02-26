@@ -1,9 +1,9 @@
 # Copyright 2021 Johanna Roedenbeck
-# calculating Grünlandtemperatursumme
+# calculating Gruenlandtemperatursumme
 
 """
 
-  That extension calculates the "Grünlandtemperatursumme" (GTS) and
+  That extension calculates the "Gruenlandtemperatursumme" (GTS) and
   the date when it exceedes 200, which is considered the start of
   growing of plants in Europe.
   
@@ -11,7 +11,7 @@
   
   GTS: 
   
-    Grünlandtemperatursumme
+    Gruenlandtemperatursumme
     
     The value is based on daily average temperature. If that temperature
     is above 0°C (32°F) it is used, otherwise discarded. The calculation 
@@ -67,7 +67,7 @@
         
 """
 
-VERSION = "0.1"
+VERSION = "0.2"
 
 # deal with differences between python 2 and python 3
 try:
@@ -340,7 +340,7 @@ class GTSType(weewx.xtypes.XType):
         """ read GTS value out of the array """
     
         if obs_type=='GTS':
-            # Grünlandtemperatursumme GTS
+            # Gruenlandtemperatursumme GTS
             try:
                 __x=self.gts_values[soy_ts][dayOfGTSYear(sod_ts,soy_ts)]
                 return weewx.units.ValueTuple(__x,'degree_C_day','group_degree_day')
@@ -502,7 +502,7 @@ class GTSType(weewx.xtypes.XType):
             raise weewx.UnknownType(obs_type)
         
         # aggregation types that are defined for those values
-        if aggregate_type not in ['avg','max','min','last']:
+        if aggregate_type not in ['avg','max','min','last','maxtime','mintime','lasttime']:
             raise weewx.UnknownAggregation("%s undefinded aggregation %s" % (obs_type,aggregation_type))
 
         if timespan is None:
@@ -565,6 +565,22 @@ class GTSType(weewx.xtypes.XType):
                         __x/=__b-__a
                 else:
                     raise weewx.CannotCalculate("%s %s invalid timespan %s %s" % (obs_type,aggregate_type,timespan.stop-timespan.start,time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(timespan.start))))
+            elif aggregate_type=='lasttime':
+                if timespan.stop>=self.last_gts_date:
+                    # today or in future
+                    __ts=self.last_gts_date
+                else:
+                    # before today
+                    if _soye_ts not in self.gts_values:
+                        raise weewx.CannotCalculate("%s %s" % (obs_type,aggregate_type))
+                    __ts=dayOfGTSYear(timespan.stop,_soye_ts)
+                    for __i,__v in reversed(enumerate(self.gts_values[_soye_ts])):
+                        if __v is not None and __i<=__ts:
+                            __ts=_soye_ts+86400*__i
+                            break
+                    else:
+                        __ts=_soye_ts
+                __x=weewx.units.ValueTuple(__ts,'unix_epoch','group_time')
             elif aggregate_type=='last':
                 if timespan.stop>=_soye_ts+13046400:
                     # after May 31st
