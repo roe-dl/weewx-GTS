@@ -11,13 +11,27 @@ XType extension for WeeWX to provide "Grünlandtemperatursumme" (a kind of growi
 
    sudo wee_extension --install weewx-GTS.zip
 
-3) restart weewx
+3) check configuration in weewx.conf
+
+   ```
+   [StdWXCalculate]
+       [[Calculations]]
+           ...
+           GTS = software
+           GTSdate = software
+           utcoffsetLMT = software
+   ...
+   [Engine]
+       [[Services]]
+           ...
+           xtype_services = ... ,user.GTS.GTSService
+   ```
+   
+5) restart weewx
 
    sudo /etc/init.d/weewx stop
    
    sudo /etc/init.d/weewx start
-
-There is no configuration needed.
 
 ## Including in skins:
 
