@@ -16,6 +16,11 @@ class GTSInstaller(ExtensionInstaller):
             author="Johanna Roedenbeck",
             author_email="",
             xtype_services='user.GTS.GTSService',
-            config={},
+            config={
+              'StdWXCalculate':{
+                'Calculations'{
+                  'GTS':'software',
+                  'GTSdate':'software',
+                  'utcoffsetLMT':'software'}}},
             files=[('bin/user', ['bin/user/GTS.py'])]
             )
