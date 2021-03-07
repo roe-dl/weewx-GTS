@@ -18,7 +18,7 @@ class GTSInstaller(ExtensionInstaller):
             xtype_services='user.GTS.GTSService',
             config={
               'StdWXCalculate':{
-                'Calculations'{
+                'Calculations':{
                   'GTS':'software,archive',
                   'GTSdate':'software,archive',
                   'utcoffsetLMT':'software,archive',
