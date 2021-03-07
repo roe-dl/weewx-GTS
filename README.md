@@ -1,5 +1,5 @@
 # weewx-GTS
-XType extension for WeeWX to provide "Grünlandtemperatursumme" (a kind of growing degree days)
+XType extension for WeeWX to provide "Grünlandtemperatursumme" (a kind of growing degree days) and dayET and ET24 as the opposite to dayRain and rain24
 
 ## Installation instructions:
 
@@ -17,9 +17,11 @@ XType extension for WeeWX to provide "Grünlandtemperatursumme" (a kind of growi
    [StdWXCalculate]
        [[Calculations]]
            ...
-           GTS = software
-           GTSdate = software
-           utcoffsetLMT = software
+           GTS = software,archvie
+           GTSdate = software, archive
+           utcoffsetLMT = software, archive
+           dayET = software, archive
+           ET24 = software, archive
    ...
    [Engine]
        [[Services]]
@@ -43,8 +45,10 @@ You can use the values provided by this extensions in all skins of WeeWX. You ca
 * **GTSdate**: the date when the GTS value exceeds 200, which is considered the beginning of real spring (example tag: `$day.GTSdate.last`)
 * **utcoffsetLMT**: offfset of the local mean time (Ortszeit) at the station's location
 * **LMTtime**: a string showing the local mean time (Ortszeit) at the station's location (can only be used with ".raw", example tag: `$current.LMTtime.raw`)
+* **dayET**: the sum of ET from the beginning of the archive day on, like dayRain does for rain
+* **ET24**: the sum of ET over the last 24 hours, like rain24 does for rain
 
-The values can be used together with every time period defined in the customization guide of WeeWX. There can be used aggregations as well. The following aggregations are defined: "**avg**", "**min**", "**max**", "**last**". Not all time spans are possible. 
+The values (except dayET and ET24) can be used together with every time period defined in the customization guide of WeeWX. There can be used aggregations as well. The following aggregations are defined: "**avg**", "**min**", "**max**", "**last**". Not all time spans are possible. 
 
 See http://weewx.com/docs/customizing.htm#Tags for details on how to use tags in skins.
 
@@ -59,8 +63,8 @@ Within \[\[month_images\]\]:
             line_gap_fraction = 0.04
             yscale = 0,None,None
             aggregate_type = avg
-            aggregate_interval = 86400
             [[[[GTS]]]]
+                aggregate_interval = 86400
                 label = Grünlandtemperatursumme
 ```
 <img src="monthGTS.png" />

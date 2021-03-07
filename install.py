@@ -10,7 +10,7 @@ def loader():
 class GTSInstaller(ExtensionInstaller):
     def __init__(self):
         super(GTSInstaller, self).__init__(
-            version="0.1",
+            version="0.3",
             name='GTS',
             description='Provides Gruenlandtemperatursumme (GTS), a kind of growing degree days',
             author="Johanna Roedenbeck",
@@ -19,8 +19,10 @@ class GTSInstaller(ExtensionInstaller):
             config={
               'StdWXCalculate':{
                 'Calculations'{
-                  'GTS':'software',
-                  'GTSdate':'software',
-                  'utcoffsetLMT':'software'}}},
+                  'GTS':'software,archive',
+                  'GTSdate':'software,archive',
+                  'utcoffsetLMT':'software,archive',
+                  'dayET':'software,archive',
+                  'ET24':'software,archive'}}},
             files=[('bin/user', ['bin/user/GTS.py'])]
             )

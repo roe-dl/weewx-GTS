@@ -34,10 +34,23 @@
   
     time offset of the local mean time (LMT)
     
-  LMTtime
+  LMTtime:
   
     user $current.LMTtime.raw to geht LMT of the last record
       
+  dayET and ET24:
+  
+    ET is the opposite to rain. Both observation types are the
+    sum over 1 archive interval. Especially for ET that is a
+    very small value.
+    
+    Regarding rain, there are 2 additional values defined,
+    'dayRain' and 'rain24'. That are some kind of aggregation,
+    but they are provided as scalar values.
+    
+    This extension does the same for ET and provides dayET and
+    ET24.
+    
   As this is about growing of plants and the sun is important
   for that, day borders are based on local mean time for the
   station's location rather than local time according to the local 
@@ -67,7 +80,7 @@
         
 """
 
-VERSION = "0.2"
+VERSION = "0.3"
 
 # deal with differences between python 2 and python 3
 try:
@@ -202,6 +215,8 @@ class GTSType(weewx.xtypes.XType):
         weewx.units.obs_group_dict.setdefault('GTSdate','group_time')
         weewx.units.obs_group_dict.setdefault('LMTtime','group_time')
         weewx.units.obs_group_dict.setdefault('utcoffsetLMT','group_deltatime')
+        weewx.units.obs_group_dict.setdefault('dayET','group_rain')
+        weewx.units.obs_group_dict.setdefault('ET24','group_rain')
         
         # lock that makes calculation atomic
         self.lock=threading.Lock()
@@ -374,7 +389,7 @@ class GTSType(weewx.xtypes.XType):
                     'unix_epoch','group_time')
         
         # This functions handles 'GTS' and 'GTSdate'.
-        if obs_type!='GTS' and obs_type!='GTSdate':
+        if obs_type not in ['GTS','GTSdate','dayET','ET24']:
             raise weewx.UnknownType(obs_type)
         
         #if record is None:
@@ -401,6 +416,28 @@ class GTSType(weewx.xtypes.XType):
                 self.record_ok=False
             # to do something we deliver the last available value
             _time_ts=time.time()
+
+        if obs_type=='dayET':
+            # dayET should be comparable to dayRain, so use the same
+            # time span: not local mean time but archive time
+            try:
+               # startOfArchiveDay() considers midnight belonging
+               # to the previous day. So the time span would be
+               # always greater than 0.
+               __x=weeutil.weeutil.startOfArchiveDay(_time_ts)
+               __x=weeutil.weeutil.TimeSpan(__x,_time_ts)
+            except (ValueError,TypeError,IndexError):
+               raise weewx.CannotCalculate("dayET: invalid time")
+            return weewx.xtypes.get_aggregate('ET',__x,'sum',db_manager)
+        
+        if obs_type=='ET24':
+            try:
+                __x=weeutil.weeutil.TimeSpan(_time_ts-86400,_time_ts)
+            except:
+                raise weewx.CannotCalculate("ET24: invalid time")
+            return weewx.xtypes.get_aggregate('ET',__x,'sum',db_manager)
+            
+            
         _soy_ts=startOfYearTZ(_time_ts,self.lmt_tz)
         _sod_ts=startOfDayTZ(_time_ts,_soy_ts) # start of day
 
@@ -647,8 +684,10 @@ class GTSService(StdService):
         
         # the station's location
         # (needed for calculation of the local mean time (LMT))
-        __lat=float(config_dict['Station']['latitude'])
-        __lon=float(config_dict['Station']['longitude'])
+        #__lat=float(config_dict['Station']['latitude'])
+        #__lon=float(config_dict['Station']['longitude'])
+        __lat=engine.stn_info.latitude_f
+        __lon=engine.stn_info.longitude_f
 
         # Instantiate an instance of the class GTSType, using the options
         self.GTSextension=GTSType(__lat,__lon)
