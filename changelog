@@ -7,3 +7,5 @@
 0.3 07mar2021
 * added configuration items in install.py
 * added dayET and ET24
+0.4 10mar2021
+* added aggregation type 'energy_integral' for observation type 'radiation'

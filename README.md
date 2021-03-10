@@ -1,5 +1,8 @@
 # weewx-GTS
-XType extension for WeeWX to provide "Grünlandtemperatursumme" (a kind of growing degree days) and dayET and ET24 as the opposite to dayRain and rain24
+XType extension for WeeWX to provide 
+* "Grünlandtemperatursumme" (a kind of growing degree days) 
+* observation types 'dayET' and 'ET24' as the opposite to 'dayRain' and 'rain24'
+* additional aggregation type for 'radiation' to calculate the total energy received during the aggregation interval
 
 ## Installation instructions:
 
@@ -39,20 +42,24 @@ XType extension for WeeWX to provide "Grünlandtemperatursumme" (a kind of growi
 
 You can use the values provided by this extensions in all skins of WeeWX. You can show the values, and you can create a diagram. The following observation types are provided:
 
-### Display values (CheetahGenerator)
+### Grünlandtemperatursumme
+
+"Grünlandtemperatursumme" is a kind of growing degree days that is used
+to estimate the start of growing of the plants. For the algorithm see
+below.
+
+#### Display values (CheetahGenerator)
 
 * **GTS**: the value of "Grünlandtemperatursumme" itself (example tag: `$current.GTS`)
 * **GTSdate**: the date when the GTS value exceeds 200, which is considered the beginning of real spring (example tag: `$day.GTSdate.last`)
 * **utcoffsetLMT**: offfset of the local mean time (Ortszeit) at the station's location
 * **LMTtime**: a string showing the local mean time (Ortszeit) at the station's location (can only be used with ".raw", example tag: `$current.LMTtime.raw`)
-* **dayET**: the sum of ET from the beginning of the archive day on, like dayRain does for rain
-* **ET24**: the sum of ET over the last 24 hours, like rain24 does for rain
 
-The values (except dayET and ET24) can be used together with every time period defined in the customization guide of WeeWX. There can be used aggregations as well. The following aggregations are defined: "**avg**", "**min**", "**max**", "**last**". Not all time spans are possible. 
+The values can be used together with every time period defined in the customization guide of WeeWX. There can be used aggregations as well. The following aggregations are defined: "**avg**", "**min**", "**max**", "**last**". Not all time spans are possible. 
 
 See http://weewx.com/docs/customizing.htm#Tags for details on how to use tags in skins.
 
-### Diagrams (ImageGenerator)
+#### Diagrams (ImageGenerator)
 
 To create diagrams you need to include additional sections into the \[ImageGenerator\] section of skin.conf. What follows are examples. There are more possibilities than that.
 
@@ -88,7 +95,68 @@ These examples create image files named 'monthGTS.png' or 'yearGTS.png', respect
 <img src="yearGTS.png" />
 ```
 
+### Evapotranspiration
+
+#### Display values (CheetahGenerator)
+
+* **dayET**: the sum of ET from the beginning of the archive day on, like dayRain does for rain
+* **ET24**: the sum of ET over the last 24 hours, like rain24 does for rain
+
+#### Diagrams (ImageGenerator)
+
+'dayET' and 'ET24' are not used in plots.
+
+### Radiation energy
+
+'radiation' is a built-in observation type of WeeWX. This extension only
+provides an additional aggregation type to 'radiation'. It is called 
+'energy_integral' and calculates the total energy received during the 
+aggregation interval.
+
+Note: An Integral is not a sum of observation readings. See below for
+algorithm.
+
+#### Display values (CheetahGenerator)
+
+You need to use this aggregation type together with aggregation timespans
+like `$day`, `$yesterday`, `$week`, `$month`, and `$year` as well as
+timespans defined by some other extension to WeeWX.
+
+`energy_integral` can be used like any other aggregation type like `min`,
+`max`, or `sum`.
+
+Example:
+`$yesterday.radiation.energy_integral` displays the total sun energy
+received the day before.
+
+To disply the value in kWh/m^2 instead of Wh/m^2 use:
+`$yesterday.radiation.energy_integral.kilowatt_hour_per_meter_squared`
+
+#### Diagrams (ImageGenerator)
+
+Within \[\[month_images\]\]:
+
+```
+        [[[monthRadiationEnergy]]]
+            line_gap_fraction = 0.04
+            #y_label = "Wh/m²"
+            [[[[radiation]]]]
+                label = "Sonnenenergie (täglich gesamt)"
+                data_type = radiation
+                aggregate_type = energy_integral
+                aggregate_interval = 86400
+```
+
+This example creates an image file called 'monthRadiationEnergy.png'
+To display it within the web page an approiate \<img\> tag needs to be included for example in index.html.tmpl:
+
+```
+<img src="monthRadiationEnergy.png" />
+```
+
 ## Algorithm:
+
+### Grünlandtemperatursumme (GTS)
 
 * GTS is calculated from the daily average temperatures. If the daily average temperature is above 0°C (32°F) it is used to add to the sum, otherwise it is discarded.
 * In January the daily average temperatures are multiplied by 0.5.
@@ -97,6 +165,20 @@ These examples create image files named 'monthGTS.png' or 'yearGTS.png', respect
 * To get the GTS value of a day all the values as described above are added from January 1st to the day in question. So the GTS value increases in time.
 * If the GTS value exceeds 200 this event is considered the beginning of growing of the plants in spring.
 * The GTS value itself is calculated up to May 31st. The end value is considered a statement about the spring.
+
+### Radiation energy
+
+Radiation energy is calculated as follows: All the radiation readings
+within the aggregation interval are multiplied by their respective
+archive interval. That is based on the assumption that the radiation
+was constant during that interval. The error resulting form that is
+considered small enough to tolerate.
+
+After that all the products of radiation and time interval are summarized
+together.
+
+While the unit label of the radiation reading is W/m^2, the unit label
+of the radiation energy is Wh/m^2.
 
 ## Sources:
 

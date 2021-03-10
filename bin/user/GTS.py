@@ -7,7 +7,7 @@
   the date when it exceedes 200, which is considered the start of
   growing of plants in Europe.
   
-  It supplies 2 values:
+  It supplies the following values:
   
   GTS: 
   
@@ -28,8 +28,6 @@
     The date when the GTS exceeds 200. There is one such event
     per year, only.
 
-  There are auxillary values:
-  
   utcoffsetLMT:
   
     time offset of the local mean time (LMT)
@@ -50,6 +48,12 @@
     
     This extension does the same for ET and provides dayET and
     ET24.
+    
+  radiation.energy_integral
+  
+    That is an additional aggregation, only. It is done for the
+    observation type 'radiation' and calculates total energy
+    received during the aggregation interval.
     
   As this is about growing of plants and the sun is important
   for that, day borders are based on local mean time for the
@@ -80,7 +84,7 @@
         
 """
 
-VERSION = "0.3"
+VERSION = "0.4"
 
 # deal with differences between python 2 and python 3
 try:
@@ -211,12 +215,29 @@ class GTSType(weewx.xtypes.XType):
         self.gts_values={}      # calculated GTS values
         
         # register the values with WeeWX
+        # GTS
         weewx.units.obs_group_dict.setdefault('GTS','group_degree_day')
         weewx.units.obs_group_dict.setdefault('GTSdate','group_time')
         weewx.units.obs_group_dict.setdefault('LMTtime','group_time')
-        weewx.units.obs_group_dict.setdefault('utcoffsetLMT','group_deltatime')
+        weewx.units.obs_group_dict.setdefault('utcoffsetLMT','group_deltatime')        
+        # ET
         weewx.units.obs_group_dict.setdefault('dayET','group_rain')
         weewx.units.obs_group_dict.setdefault('ET24','group_rain')
+        # radiation integral
+        weewx.units.agg_group.setdefault('energy_integral','group_radiation_energy')
+        weewx.units.USUnits.setdefault('group_radiation_energy','watt_hour_per_meter_squared')
+        weewx.units.MetricUnits.setdefault('group_radiation_energy','watt_hour_per_meter_squared')
+        weewx.units.MetricWXUnits.setdefault('group_radiation_energy','watt_hour_per_meter_squared')
+        weewx.units.default_unit_format_dict.setdefault('watt_hour_per_meter_squared',"%.0f")
+        weewx.units.default_unit_label_dict.setdefault('watt_hour_per_meter_squared',u" Wh/m²")
+        weewx.units.default_unit_format_dict.setdefault('kilowatt_hour_per_meter_squared',"%.3f")
+        weewx.units.default_unit_label_dict.setdefault('kilowatt_hour_per_meter_squared',u" kWh/m²")
+        if 'watt_hour_per_meter_squared' not in weewx.units.conversionDict:
+            weewx.units.conversionDict['watt_hour_per_meter_squared']={}
+        if 'kilowatt_hour_per_meter_squared' not in weewx.units.conversionDict:
+            weewx.units.conversionDict['kilowatt_hour_per_meter_squared']={}
+        weewx.units.conversionDict['watt_hour_per_meter_squared']['kilowatt_hour_per_meter_squared']= lambda x : x / 1000.0
+        weewx.units.conversionDict['kilowatt_hour_per_meter_squared']['watt_hour_per_meter_squared']= lambda x : x * 1000.0
         
         # lock that makes calculation atomic
         self.lock=threading.Lock()
@@ -524,6 +545,47 @@ class GTSType(weewx.xtypes.XType):
         if record is None: return __x
         return weewx.units.convertStd(__x,record['usUnits'])
 
+    def calc_radiation_integral(self,timespan,db_manager):
+        """calculate radiation integral over time
+        
+        radiation: actual radiation in Watt per square meter
+        interval:  registration interval as per database record in minutes
+        
+        """
+
+        try:
+            _result = db_manager.getSql(
+                    "SELECT SUM(radiation*interval)/60.0, "
+                    "MIN(usUnits),MAX(usUnits) FROM %s "
+                    "WHERE dateTime>? AND dateTime<=?"
+                    % db_manager.table_name,timespan)
+            if _result is None:
+                raise weewx.CannotCalculate("calculate radiation energy: no radiation data in database")
+            if _result[0] is not None:
+                if not _result[1] == _result[2]:
+                    raise weewx.CannotCalculate("calculate radiation energy: inconsistent units")
+                if weewx.debug >= 2:
+                    logdbg("radiation integral %.1f" % _result[0])
+                #loginf("radiation integral %.1f" % _result[0])
+                _unit=weewx.units.getStandardUnitType(_result[1],'radiation')
+                #loginf("unit %s" % _unit[0])
+                #loginf("unit %s" % _unit[1])
+                if _unit is None or _unit==(None,None) or _unit[1]!='group_radiation':
+                    raise weewx.CannotCalculate("calculate radiation energy: invalid unit group for")
+                if _unit[0]=='watt_per_meter_squared':
+                    _unit='watt_hour_per_meter_squared'
+                else:
+                    _unit=None
+                #loginf("unit %s" % _unit)
+            else:
+                _unit='watt_hour_per_meter_squared'
+            return weewx.units.ValueTuple(_result[0],_unit,'group_radiation_energy')
+        except weedb.OperationalError as e:
+            raise weewx.CannotCalculate("calculate radiation energy: Database OperationalError '%s'" % e)
+        except (ValueError, TypeError) as e:
+            raise weewx.CannotCalculate("calculate radiation energy: %s" % e)
+        return None
+
 
     def get_aggregate(self, obs_type, timespan, aggregate_type, db_manager, **option_dict):
 
@@ -533,6 +595,9 @@ class GTSType(weewx.xtypes.XType):
         # time offset of local mean time (LMT)
         if obs_type=='utcoffsetLMT':
             return weewx.units.ValueTuple(self.lmt_tz.utcoffset(None).total_seconds(),'second','group_deltatime')
+        
+        if obs_type=='radiation' and aggregate_type=='energy_integral':
+            return self.calc_radiation_integral(timespan,db_manager)
 
         # This function handles 'GTS' and 'GTSdate'.
         if obs_type!='GTS' and obs_type!='GTSdate':
