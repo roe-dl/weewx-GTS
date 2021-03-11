@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.4"
+VERSION = "0.4.1"
 
 # deal with differences between python 2 and python 3
 try:
@@ -551,11 +551,13 @@ class GTSType(weewx.xtypes.XType):
         radiation: actual radiation in Watt per square meter
         interval:  registration interval as per database record in minutes
         
+        Note: 'interval' needs to be included in backticks '`' in
+              order to work with MySQL
         """
 
         try:
             _result = db_manager.getSql(
-                    "SELECT SUM(radiation*interval)/60.0, "
+                    "SELECT SUM(radiation*`interval`)/60.0, "
                     "MIN(usUnits),MAX(usUnits) FROM %s "
                     "WHERE dateTime>? AND dateTime<=?"
                     % db_manager.table_name,timespan)
