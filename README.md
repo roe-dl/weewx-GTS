@@ -154,6 +154,24 @@ To display it within the web page an appropriate \<img\> tag needs to be include
 <img src="monthRadiationEnergy.png" />
 ```
 
+#### Diagrams (Belchertown skin)
+
+Belchertown skin uses another plot engine (Highcharts). Therefore the syntax is slightly different.
+
+In section \[month\] or \[year\] of graphs.conf:
+
+```
+    [[Sonnenenergie]]
+        title = "Sonnenenergie (täglich gesamt)"
+        aggregate_type = energy_integral
+        aggregate_interval = 86400
+        yAxis_label = Energie
+        yAxis_label_unit = "Wh/m&sup2;"
+        [[[radiation]]]
+```
+
+No \<img\> tag is needed.
+
 ## Algorithm:
 
 ### Grünlandtemperatursumme (GTS)
