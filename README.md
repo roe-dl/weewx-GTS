@@ -23,8 +23,8 @@ XType extension for WeeWX to provide
            GTS = software,archvie
            GTSdate = software, archive
            utcoffsetLMT = software, archive
-           dayET = software, archive
-           ET24 = software, archive
+           dayET = prefer_hardware, archive
+           ET24 = prefer_hardware, archive
    ...
    [Engine]
        [[Services]]
@@ -86,7 +86,7 @@ Within \[\[year_images\]\]:
 ```
 <img src="yearGTS.png" />
 
-These examples create image files named 'monthGTS.png' or 'yearGTS.png', respectively. To display them within the web page approiate \<img\> tags need to be included for example in index.html.tmpl:
+These examples create image files named 'monthGTS.png' or 'yearGTS.png', respectively. To display them within the web page appropriate \<img\> tags need to be included for example in index.html.tmpl:
   
 ```
 <img src="monthGTS.png" />
@@ -148,7 +148,7 @@ Within \[\[month_images\]\]:
 ```
 
 This example creates an image file called 'monthRadiationEnergy.png'
-To display it within the web page an approiate \<img\> tag needs to be included for example in index.html.tmpl:
+To display it within the web page an appropriate \<img\> tag needs to be included for example in index.html.tmpl:
 
 ```
 <img src="monthRadiationEnergy.png" />
