@@ -202,3 +202,8 @@ of the radiation energy is Wh/m^2.
 
 * http://www.groitzsch-wetter.de/HP/green1.html
 * http://www.regionalwetter-sa.de/sa_gruenland.php
+
+## Links:
+
+* [WeeWX homepage](http://weewx.com) - [WeeWX Wiki](https://github.com/weewx/weewx/wiki)
+* [Belchertown skin homepage](https://obrienlabs.net/belchertownweather-com-website-theme-for-weewx/) - [Belchertown skin Wiki](https://github.com/poblabs/weewx-belchertown/wiki)
