@@ -34,9 +34,10 @@ XType extension for WeeWX to provide
    
 5) restart weewx
 
+   ```
    sudo /etc/init.d/weewx stop
-   
    sudo /etc/init.d/weewx start
+   ```
 
 ## Including in skins:
 
