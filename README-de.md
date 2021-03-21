@@ -207,7 +207,7 @@ Es wird kein \<img\> Tag benötigt.
 * Die Grünlandtemperatursumme selbst wird bis zum 31. Mai berechnet.
   Der Endwert wird als Maß für die Qualität des Frühlings angesehen.
 
-### Radiation energy
+### Sonnenenergie
 
 Die Sonnenenergie wird berechnet, indem alle Strahlungsmeßwerte 
 ("radiation") mit dem jeweiligen Meßintervall ("interval") 
@@ -228,6 +228,7 @@ der Sonnenenergie Wh/m^2 bzw. kWh/m^2.
 
 ## Verweise (Links):
 
+* [Übersicht zu WeeWX auf Deutsch](https://www.woellsdorf-wetter.de/software/weewx.html)
 * [WeeWX](http://weewx.com) - [WeeWX Wiki](https://github.com/weewx/weewx/wiki)
 * [Belchertown Skin](https://obrienlabs.net/belchertownweather-com-website-theme-for-weewx/) - [Belchertown skin Wiki](https://github.com/poblabs/weewx-belchertown/wiki)
 * [Wöllsdorfer Wetter](https://www.woellsdorf-wetter.de)
