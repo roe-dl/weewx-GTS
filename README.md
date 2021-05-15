@@ -52,7 +52,7 @@ below.
 #### Display values (CheetahGenerator)
 
 * **GTS**: the value of "Grünlandtemperatursumme" itself (example tag: `$current.GTS`)
-* **GTSdate**: the date when the GTS value exceeds 200, which is considered the beginning of real spring (example tag: `$day.GTSdate.last`)
+* **GTSdate**: the date when the GTS value exceeds 200, which is considered the beginning of real spring (example tag: `$day.GTSdate.last.format("%Y-%m-%d")`)
 * **utcoffsetLMT**: offfset of the local mean time (Ortszeit) at the station's location
 * **LMTtime**: a string showing the local mean time (Ortszeit) at the station's location (can only be used with ".raw", example tag: `$current.LMTtime.raw`)
 

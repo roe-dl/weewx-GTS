@@ -56,7 +56,7 @@ des Frühjahrs und wann das Pflanzenwachstum beginnt.
 
 * **GTS**: der Wert der Grünlandtemperatursumme (Beispiel: `$current.GTS`)
 * **GTSdate**: das Datum, wenn die Grünlandtemperatursumme den Wert von 200
-  überschreitet, was als Beginn des Frühlings betrachtet wird (Beispiel: `$day.GTSdate.last`)
+  überschreitet, was als Beginn des Frühlings betrachtet wird (Beispiel: `$day.GTSdate.last.format("%d.%m.%Y")`)
 * **utcoffsetLMT**: Offfset der Ortszeit gegenüber UTC am Ort der Station
 * **LMTtime**: ein String, der die Ortszeit bei der letzten Speicherung
   angibt (nur mit ".raw" nutzbar, Beispiel: `$current.LMTtime.raw`)
@@ -229,7 +229,7 @@ sind, eine Datei erzeugt.
 * Die Grünlandtemperatursumme selbst wird bis zum 31. Mai berechnet.
   Der Endwert wird als Maß für die Qualität des Frühlings angesehen.
 
-### Radiation energy
+### Sonnenenergie
 
 Die Sonnenenergie wird berechnet, indem alle Strahlungsmeßwerte 
 ("radiation") mit dem jeweiligen Meßintervall ("interval") 
@@ -250,6 +250,7 @@ der Sonnenenergie Wh/m^2 bzw. kWh/m^2.
 
 ## Verweise (Links):
 
+* [Übersicht zu WeeWX auf Deutsch](https://www.woellsdorf-wetter.de/software/weewx.html)
 * [WeeWX](http://weewx.com) - [WeeWX Wiki](https://github.com/weewx/weewx/wiki)
 * [Belchertown Skin](https://obrienlabs.net/belchertownweather-com-website-theme-for-weewx/) - [Belchertown skin Wiki](https://github.com/poblabs/weewx-belchertown/wiki)
 * [Wöllsdorfer Wetter](https://www.woellsdorf-wetter.de)
