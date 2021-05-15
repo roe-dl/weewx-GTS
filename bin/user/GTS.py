@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.4.1"
+VERSION = "0.5"
 
 # deal with differences between python 2 and python 3
 try:
@@ -545,7 +545,7 @@ class GTSType(weewx.xtypes.XType):
         if record is None: return __x
         return weewx.units.convertStd(__x,record['usUnits'])
 
-    def calc_radiation_integral(self,timespan,db_manager):
+    def calc_radiation_integral(self,obs_type,timespan,db_manager):
         """calculate radiation integral over time
         
         radiation: actual radiation in Watt per square meter
@@ -557,17 +557,17 @@ class GTSType(weewx.xtypes.XType):
 
         try:
             _result = db_manager.getSql(
-                    "SELECT SUM(radiation*`interval`)/60.0, "
+                    "SELECT SUM(%s*`interval`)/60.0, "
                     "MIN(usUnits),MAX(usUnits) FROM %s "
                     "WHERE dateTime>? AND dateTime<=?"
-                    % db_manager.table_name,timespan)
+                    % (obs_type,db_manager.table_name),timespan)
             if _result is None:
                 raise weewx.CannotCalculate("calculate radiation energy: no radiation data in database")
             if _result[0] is not None:
                 if not _result[1] == _result[2]:
                     raise weewx.CannotCalculate("calculate radiation energy: inconsistent units")
                 if weewx.debug >= 2:
-                    logdbg("radiation integral %.1f" % _result[0])
+                    logdbg("radiation integral %s %.1f" % (obs_type,_result[0]))
                 #loginf("radiation integral %.1f" % _result[0])
                 _unit=weewx.units.getStandardUnitType(_result[1],'radiation')
                 #loginf("unit %s" % _unit[0])
@@ -598,8 +598,11 @@ class GTSType(weewx.xtypes.XType):
         if obs_type=='utcoffsetLMT':
             return weewx.units.ValueTuple(self.lmt_tz.utcoffset(None).total_seconds(),'second','group_deltatime')
         
-        if obs_type=='radiation' and aggregate_type=='energy_integral':
-            return self.calc_radiation_integral(timespan,db_manager)
+        # energy_integral can be calculated for group_radiation observation 
+        # types like 'radiation' and 'maxSolarRad'
+        if aggregate_type=='energy_integral':
+            if obs_type in weewx.units.obs_group_dict and weewx.units.obs_group_dict[obs_type]=='group_radiation':
+                return self.calc_radiation_integral(obs_type,timespan,db_manager)
 
         # This function handles 'GTS' and 'GTSdate'.
         if obs_type!='GTS' and obs_type!='GTSdate':
@@ -624,19 +627,26 @@ class GTSType(weewx.xtypes.XType):
         # calculate GTS values for the years included in timespan 
         # (if time span is within the current year, the
         # value is calculated up to the current day (today))
-        __max=0
-        __ts=_soya_ts
+        __max = 0
+        __maxtime = None
+        __min = 10000000
+        __mintime = None
+        __ts = _soya_ts
         if timespan.start>=_soya_ts+13046400:
             # time span starts after May 31st, so ignore that year
-            __ts=startOfYearTZ(__ts+31708800,self.lmt_tz)
+            __ts = startOfYearTZ(__ts+31708800,self.lmt_tz)
         while __ts<=_soye_ts:
             # calculate GTS values for the year
             self.calc_gts(__ts,db_manager)
-            # update maximum
-            if aggregate_type=='max' and __ts in self.gts_values:
-                for __i in self.gts_values[__ts]:
-                    if __i is not None and __i>__max:
-                        __max=__i
+            # update minimum and maximum
+            if __ts in self.gts_values:
+                for __i,__val in enumerate(self.gts_values[__ts]):
+                    if __val is not None and __val>__max:
+                        __max = __val
+                        __maxtime = __ts+__i*86400
+                    if __val is not None and __val<__min:
+                        __min = __val
+                        __mintime = __ts+__i*86400
             # next year
             __ts=startOfYearTZ(__ts+31708800,self.lmt_tz)
         
@@ -701,16 +711,13 @@ class GTSType(weewx.xtypes.XType):
                         __ts-=86400
                 __x=self.get_gts(obs_type,__ts,_soye_ts)
             elif aggregate_type=='max':
-                __x=__max
+                __x=weewx.units.ValueTuple(__max,'degree_C_day','group_degree_day')
             elif aggregate_type=='maxtime':
-                if _soya_ts==_soye_ts:
-                    __x=weewx.units.ValueTuple(timespan.stop,'unix_epoch','group_time')
-                else:
-                    raise weewx.CannotCalculate(aggregate_type)
+                __x=weewx.units.ValueTuple(__maxtime,'unix_epoch','group_time')
             elif aggregate_type=='min':
-                __x=weewx.units.ValueTuple(0,'degree_C_day','group_degree_day')
+                __x=weewx.units.ValueTuple(__min,'degree_C_day','group_degree_day')
             elif aggregate_type=='mintime':
-                __x=weewx.units.ValueTuple(_soya_ts,'unix_epoch','group_time')
+                __x=weewx.units.ValueTuple(__mintime,'unix_epoch','group_time')
             else:
                 raise weewx.CannotCalculate("%s %s" % (obs_type,aggregate_type))
             """
@@ -751,8 +758,6 @@ class GTSService(StdService):
         
         # the station's location
         # (needed for calculation of the local mean time (LMT))
-        #__lat=float(config_dict['Station']['latitude'])
-        #__lon=float(config_dict['Station']['longitude'])
         __lat=engine.stn_info.latitude_f
         __lon=engine.stn_info.longitude_f
 

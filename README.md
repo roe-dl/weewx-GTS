@@ -109,8 +109,9 @@ These examples create image files named 'monthGTS.png' or 'yearGTS.png', respect
 
 ### Radiation energy
 
-'radiation' is a built-in observation type of WeeWX. This extension only
-provides an additional aggregation type to 'radiation'. It is called 
+'radiation' and 'maxSolarRad' are built-in observation types of WeeWX. 
+This extension only
+provides an additional aggregation type to them. It is called 
 'energy_integral' and calculates the total energy received during the 
 aggregation interval.
 
@@ -130,7 +131,7 @@ Example:
 `$yesterday.radiation.energy_integral` displays the total sun energy
 received the day before.
 
-To disply the value in kWh/m^2 instead of Wh/m^2 use:
+To display the value in kWh/m^2 instead of Wh/m^2 use:
 `$yesterday.radiation.energy_integral.kilowatt_hour_per_meter_squared`
 
 #### Diagrams (ImageGenerator)
@@ -172,6 +173,25 @@ In section \[month\] or \[year\] of graphs.conf:
 ```
 
 No \<img\> tag is needed.
+
+#### NOAA-like Table
+
+There is an example template to create a text file showing monthly 
+summeries of sun energy and sun radiation in the examples directory.
+To use it, copy the file to your skin directory and add the following
+to your `skin.conf`:
+
+```
+[CheetahGenerator]
+    ...
+    [[SummaryByYear]]
+        ...
+        [[[sun_year]]]
+            encoding = strict_ascii
+            template = sun-%Y.txt.tmpl
+```
+
+This creates a file for every year that data is available for.
 
 ## Algorithm:
 

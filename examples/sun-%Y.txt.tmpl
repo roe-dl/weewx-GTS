@@ -1,0 +1,11 @@
+       Sonnenstrahlung im Jahr $year.dateTime.format("%Y")
+
+Jahr Monat  Sonnen-    theoret.   max.       Tag Zeit  mittleres
+            energie    moeglich   Strahlung            Maximum
+            [kWh/m^2]  [kWh/m^2]  [W/m^2]              [W/m^2]
+----------------------------------------------------------------
+#for $month in $year.months
+$month.dateTime.format("%Y %m")     $month.radiation.energy_integral.kilowatt_hour_per_meter_squared.format("%7.1f",add_label=False)    $month.maxSolarRad.energy_integral.kilowatt_hour_per_meter_squared.format("%7.1f",add_label=False)    $month.radiation.max.format("%7.0f",add_label=False)    $month.radiation.maxtime.format("%d %H:%M","        ")  $month.radiation.meanmax.format("%7.0f",add_label=False)
+#end for
+----------------------------------------------------------------
+            $year.radiation.energy_integral.kilowatt_hour_per_meter_squared.format("%7.1f",add_label=False)    $year.maxSolarRad.energy_integral.kilowatt_hour_per_meter_squared.format("%7.1f",add_label=False)    $year.radiation.max.format("%7.0f",add_label=False)              $year.radiation.meanmax.format("%7.0f",add_label=False)

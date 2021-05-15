@@ -124,10 +124,11 @@ einzutragen:
 
 ### Sonnenenergie
 
-"radiation" ist eine in WeeWX standardmäßig bereitgestellte Größe der
-momentanen Sonnenstrahlung. Diese Erweiterung stellt den zusätzlichen
+"radiation" und "maxSolarRad" sind in WeeWX standardmäßig bereitgestellte 
+Größen. Diese Erweiterung stellt den zusätzlichen
 "aggregation_type" `energy_integral` zur Verfügung, der die Sonnenenergie
-berechnet, die über den Berechnungszeitraum am Meßort eingegangen ist.
+berechnet, die über den Berechnungszeitraum am Meßort eingegangen ist
+bzw. maximal möglich wäre.
 
 Beachte: Ein Integral ist nicht einfach die Summe der Meßwerte. Details
 sind unten unter Algorithmus beschrieben.
@@ -188,6 +189,27 @@ Im Abschnitt \[month\] oder \[year\] von graphs.conf:
 ```
 
 Es wird kein \<img\> Tag benötigt.
+
+#### Textdatei
+
+Im "examples"-Verzeichnis ist eine Vorlage (template) zu finden, die
+eine Textdatei mit den tabellierten Werten von Sonnenenergie und
+Sonnenstrahlung erzeugt. Um sie zu nutzen, muß die Datei in das
+Skin-Verzeichnis kopiert werden. In `skin.conf` sind dann folgende
+Eintragungen vorzunehmen:
+
+```
+[CheetahGenerator]
+    ...
+    [[SummaryByYear]]
+        ...
+        [[[sun_year]]]
+            encoding = strict_ascii
+            template = sun-%Y.txt.tmpl
+```
+
+Damit wird für jedes Jahr, für das Daten in der Datenbank verfügbar
+sind, eine Datei erzeugt. 
 
 ## Algorithmus:
 

@@ -12,3 +12,7 @@
 0.4.1 11mar2021
 * changed configuration entry for dayET and ET24 to 'prefer_hardware,archive'
 * column name 'interval' enclosed in backticks for MySQL
+0.5 
+* fixed calculation of GTS.max
+* correct calculation of GTS.max, min, maxtime, mintime for arbitrary time spans
+* energy_integral works for maxSolarRad, too
