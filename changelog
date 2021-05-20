@@ -16,3 +16,5 @@
 * fixed calculation of GTS.max
 * correct calculation of GTS.max, min, maxtime, mintime for arbitrary time spans
 * energy_integral works for maxSolarRad, too
+0.5.1 20may2021
+* local time offset rounded to whole minutes for Python < 3.7
