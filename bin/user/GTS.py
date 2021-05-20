@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.5"
+VERSION = "0.5.1"
 
 # deal with differences between python 2 and python 3
 try:
@@ -205,8 +205,14 @@ class GTSType(weewx.xtypes.XType):
         # remember the station's location and determine the timezone
         # data for local mean time (LMT)
         self.latlon=(lat,lon)
-        self.timeoffset=datetime.timedelta(seconds=lon*240)
-        self.lmt_tz=datetime.timezone(self.timeoffset,"LMT")
+        try:
+            self.timeoffset=datetime.timedelta(seconds=lon*240)
+            self.lmt_tz=datetime.timezone(self.timeoffset,"LMT")
+        except ValueError:
+            # Python before 3.7 requires timedelta to be whole minutes
+            logerr("local time rounded to whole minutes. Use Python>=3.7 to prevent that")
+            self.timeoffset = datetime.timdedelta(minutes=(lon*240)//60)
+            self.lmt_tz = datetime.timezone(self.timeoffset,"LMT")
 
         # attributes to save calculted values
         self.last_gts_date=None # last date GTS is calculated for
