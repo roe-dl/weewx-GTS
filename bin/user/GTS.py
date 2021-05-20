@@ -211,7 +211,7 @@ class GTSType(weewx.xtypes.XType):
         except ValueError:
             # Python before 3.7 requires timedelta to be whole minutes
             logerr("local time rounded to whole minutes. Use Python>=3.7 to prevent that")
-            self.timeoffset = datetime.timdedelta(minutes=(lon*240)//60)
+            self.timeoffset = datetime.timedelta(minutes=(lon*240)//60)
             self.lmt_tz = datetime.timezone(self.timeoffset,"LMT")
 
         # attributes to save calculted values
