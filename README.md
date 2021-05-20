@@ -1,3 +1,5 @@
+Deutsche Version dieses Textes [hier](https://github.com/roe-dl/weewx-GTS/blob/master/README-de.md)
+
 # weewx-GTS
 XType extension for WeeWX to provide 
 * "Grünlandtemperatursumme" (a kind of growing degree days) 
