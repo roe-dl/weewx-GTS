@@ -18,3 +18,5 @@
 * energy_integral works for maxSolarRad, too
 0.5.1 20may2021
 * local time offset rounded to whole minutes for Python < 3.7
+0.5.2 01jun2021
+* fix bug that creates an exception if the timespan starts after May 31st
