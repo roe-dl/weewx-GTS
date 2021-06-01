@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.5.1"
+VERSION = "0.5.2"
 
 # deal with differences between python 2 and python 3
 try:
@@ -112,6 +112,7 @@ import weewx
 import weewx.manager
 import weewx.units
 import weewx.xtypes
+import weewx.wxformulas
 from weeutil.weeutil import TimeSpan
 from weewx.engine import StdService
 
@@ -225,7 +226,9 @@ class GTSType(weewx.xtypes.XType):
         weewx.units.obs_group_dict.setdefault('GTS','group_degree_day')
         weewx.units.obs_group_dict.setdefault('GTSdate','group_time')
         weewx.units.obs_group_dict.setdefault('LMTtime','group_time')
-        weewx.units.obs_group_dict.setdefault('utcoffsetLMT','group_deltatime')        
+        weewx.units.obs_group_dict.setdefault('utcoffsetLMT','group_deltatime')
+        #weewx.units.obs_group_dict.setdefault('GDD','group_degree_day')
+        #weewx.units.obs_group_dict.setdefault('modGDD','group_degree_day')
         # ET
         weewx.units.obs_group_dict.setdefault('dayET','group_rain')
         weewx.units.obs_group_dict.setdefault('ET24','group_rain')
@@ -386,7 +389,8 @@ class GTSType(weewx.xtypes.XType):
             try:
                 __x=self.gts_values[soy_ts][dayOfGTSYear(sod_ts,soy_ts)]
                 return weewx.units.ValueTuple(__x,'degree_C_day','group_degree_day')
-            except (ValueError,TypeError,IndexError):
+            except (ValueError,TypeError,IndexError,KeyError):
+                logerr("soy_ts=%s sod_ts=%s" % (soy_ts,sod_ts))
                 raise weewx.CannotCalculate(obs_type)
         elif obs_type=='GTSdate':
             # date of value 200
@@ -416,7 +420,7 @@ class GTSType(weewx.xtypes.XType):
                     'unix_epoch','group_time')
         
         # This functions handles 'GTS' and 'GTSdate'.
-        if obs_type not in ['GTS','GTSdate','dayET','ET24']:
+        if obs_type not in ['GTS','GTSdate','dayET','ET24','GDD','modGDD']:
             raise weewx.UnknownType(obs_type)
         
         #if record is None:
@@ -467,6 +471,39 @@ class GTSType(weewx.xtypes.XType):
             
         _soy_ts=startOfYearTZ(_time_ts,self.lmt_tz)
         _sod_ts=startOfDayTZ(_time_ts,_soy_ts) # start of day
+        
+        # Wachstumsgradtage
+        # https://de.wikipedia.org/wiki/Wachstumsgradtag
+        """
+        if obs_type in ['GDD','modGDD']:
+            try:
+                __day_timespan = TimeSpan(_sod_ts,_sod_ts+86400)
+                # minimum of the day
+                _result = weewx.xtypes.get_aggregate('outTemp',__day,'min',db_manager)
+                # convert to centrigrade
+                if _result is not None:
+                    __min = weewx.units.convert(_result,'degree_C')
+                else:
+                    __min = None
+                # maximum of the day
+                _result = weewx.xtypes.get_aggregate('outTemp',__day,'max',db_manager)
+                # convert to centrigrade
+                if _result is not None:
+                    __max = weewx.units.convert(_result,'degree_C')
+                else:
+                    __max = None
+                # maximum over 30 degree_C is adjusted to 30
+                if __max>30: __max = 30
+                # minimum below 10 degree_C is adjusted to 10 for modGDD
+                if __min<10 and obs_type=='modGDD': __min = 10
+                # calculate average
+                __avg = weewx.wxformulas.cooling_degrees((__min+__max)/2,10)
+                __x = weewx.units.ValueTuple(__avg,'degree_C_day','group_degree_day')
+                if record is None: return __x
+                return weewx.units.convertStd(__x,record['usUnits'])
+            except (ValueError,TypeError,IndexError):
+                raise weewx.CannotCalculate("%s" % obs_type)
+        """
 
         # If the start of the year in question is before the first
         # record in the database, no value can be calculated. The
@@ -638,9 +675,9 @@ class GTSType(weewx.xtypes.XType):
         __min = 10000000
         __mintime = None
         __ts = _soya_ts
-        if timespan.start>=_soya_ts+13046400:
-            # time span starts after May 31st, so ignore that year
-            __ts = startOfYearTZ(__ts+31708800,self.lmt_tz)
+        # Even if the time span starts after May 31st, the end value
+        # is needed for some aggregations. So we have to calculate 
+        # that year, too.
         while __ts<=_soye_ts:
             # calculate GTS values for the year
             self.calc_gts(__ts,db_manager)
@@ -664,7 +701,7 @@ class GTSType(weewx.xtypes.XType):
                     __a=startOfDayTZ(timespan.start,_soya_ts)
                     __b=startOfDayTZ(timespan.stop,_soye_ts)
                     if __a!=__b:
-                        # begin end end of timespan are different days
+                        # begin and end of timespan are different days
                         # according to timezone self.lmt_tz
                         # timespan.start <= __b <= timespan.stop
                         if __b-timespan.start>timespan.stop-__b:
