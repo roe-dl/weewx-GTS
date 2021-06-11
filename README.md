@@ -5,6 +5,9 @@ XType extension for WeeWX to provide
 * "Grünlandtemperatursumme" (a kind of growing degree days) 
 * observation types 'dayET' and 'ET24' as the opposite to 'dayRain' and 'rain24'
 * additional aggregation type for 'radiation' to calculate the total energy received during the aggregation interval
+* tags for day boundaries other than midnight local timezone time (beta)
+* observation types 'yearGDD' and 'seasonGDD' (beta)
+* aggregation type 'GDD' (beta)
 
 ## Installation instructions:
 

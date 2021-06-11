@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.5.2"
+VERSION = "0.6b1"
 
 # deal with differences between python 2 and python 3
 try:
@@ -115,6 +115,9 @@ import weewx.xtypes
 import weewx.wxformulas
 from weeutil.weeutil import TimeSpan
 from weewx.engine import StdService
+from weewx.cheetahgenerator import SearchList
+from weewx.tags import TimeBinder, TimespanBinder
+
 
 try:
     # Test for new-style weewx logging by trying to import weeutil.logger
@@ -147,6 +150,8 @@ except ImportError:
     def logerr(msg):
         logmsg(syslog.LOG_ERR, msg)
 
+# The following functions are similar to that in weeutil/weeutil.py,
+# but honour the timezone tz and do _not_ honour daylight savings time.
 
 def startOfDayTZ(time_ts,soy_ts):
     """ get the start of the day time_ts is in 
@@ -195,8 +200,64 @@ def dayOfGTSYear(time_ts,soy_ts):
     # time_ts is between Jan 1st and May 31st
     return int((time_ts-soy_ts)//86400)
 
+def daySpanTZ(tz, time_ts, grace=1, days_ago=0):
+    """ Returns a TimeSpan representing a day in timezone tz
+        that includes the given time."""
+    time_ts -= grace
+    soy_ts = startOfYearTZ(time_ts,tz)
+    sod_ts = startOfDayTZ(time_ts,soy_ts)-days_ago*86400
+    return TimeSpan(sod_ts,sod_ts+86400)
+
+def monthSpanTZ(tz, time_ts, grace=1, months_ago=0):
+    """ get the start of the GTS month time_ts is in """
+    if time_ts is None:
+        # the year of today
+        dt=datetime.datetime.now(tz)
+    else:
+        # convert timestamp to local time according to timezone tz
+        dt=datetime.datetime.fromtimestamp(time_ts,tz)
+    time_ts -= grace
+    # month 1st 00:00:00 according to timezone tz
+    dta=datetime.datetime(dt.year,dt.month,1,0,0,0,0,tz)
+    if dt.month==12:
+        dte=datetime.datetime(dt.year+1,1,1,0,0,0,0,tz)
+    else:
+        dte=datetime.datetime(dt.year,dt.month+1,1,0,0,0,0,tz)
+    # convert back to timestamp
+    return TimeSpan(int(dta.timestamp()),int(dte.timestamp()))
+
+def yearSpanTZ(tz, time_ts, grace=1, years_ago=0):
+    """ Returns a TimeSpan representing a year in timezone tz
+        that includes a given time."""
+    if time_ts is None: time_ts = time.time()
+    time_ts -= grace
+    soya_ts = startOfYearTZ(time_ts,tz)
+    soye_ts = startOfYearTZ(soya_ts+31968000,tz)
+    return TimeSpan(int(soya_ts),int(soye_ts))
+
+def genDaySpansWithoutDST(start_ts, stop_ts):
+    """Generator function that generates start/stop of days
+       according to timezone tz"""
+    if None in (start_ts, stop_ts): return
+    for time_ts in range(int(start_ts),int(stop_ts),86400):
+        yield TimeSpan(int(time_ts),int(time_ts+86400))
+    
+
+def genYearSpansTZ(tz, start_ts, stop_ts):
+    if None in (start_ts, stop_ts): return
+    if start_ts>stop_ts: return
+    _soya_ts = startOfYearTZ(start_ts,tz)
+    while _soya_ts<stop_ts:
+        _soye_ts = startOfYearTZ(_soya_ts+31968000,tz)
+        yield TimeSpan(int(_soya_ts),int(_soye_ts))
+        _soya_ts = _soye_ts
+
 
 class GTSType(weewx.xtypes.XType):
+
+    # default growing degree days base and limit temperature
+    GDD_BASE_VT = weewx.units.ValueTuple(10.0,'degree_C','group_temperature')
+    GDD_LIMIT_VT = weewx.units.ValueTuple(30.0,'degree_C','group_temperature')
 
     def __init__(self,lat,lon):
 
@@ -227,8 +288,11 @@ class GTSType(weewx.xtypes.XType):
         weewx.units.obs_group_dict.setdefault('GTSdate','group_time')
         weewx.units.obs_group_dict.setdefault('LMTtime','group_time')
         weewx.units.obs_group_dict.setdefault('utcoffsetLMT','group_deltatime')
-        #weewx.units.obs_group_dict.setdefault('GDD','group_degree_day')
-        #weewx.units.obs_group_dict.setdefault('modGDD','group_degree_day')
+        # GDD
+        weewx.units.obs_group_dict.setdefault('yearGDD','group_degree_day')
+        weewx.units.obs_group_dict.setdefault('seasonGDD','group_degree_day')
+        weewx.units.agg_group.setdefault('GDD','group_degree_day')
+        weewx.units.agg_group.setdefault('growdeg','group_degree_day')
         # ET
         weewx.units.obs_group_dict.setdefault('dayET','group_rain')
         weewx.units.obs_group_dict.setdefault('ET24','group_rain')
@@ -403,7 +467,7 @@ class GTSType(weewx.xtypes.XType):
             raise weewx.UnknownType(obs_type)
 
 
-    def get_scalar(self, obs_type, record, db_manager):
+    def get_scalar(self, obs_type, record, db_manager, **option_dict):
         """ mandatory function to be defined for XType extensions """
 
         if obs_type is None:
@@ -420,7 +484,7 @@ class GTSType(weewx.xtypes.XType):
                     'unix_epoch','group_time')
         
         # This functions handles 'GTS' and 'GTSdate'.
-        if obs_type not in ['GTS','GTSdate','dayET','ET24','GDD','modGDD']:
+        if obs_type not in ['GTS','GTSdate','dayET','ET24','yearGDD','seasonGDD']:
             raise weewx.UnknownType(obs_type)
         
         #if record is None:
@@ -472,50 +536,45 @@ class GTSType(weewx.xtypes.XType):
         _soy_ts=startOfYearTZ(_time_ts,self.lmt_tz)
         _sod_ts=startOfDayTZ(_time_ts,_soy_ts) # start of day
         
-        # Wachstumsgradtage
-        # https://de.wikipedia.org/wiki/Wachstumsgradtag
-        """
-        if obs_type in ['GDD','modGDD']:
-            try:
-                __day_timespan = TimeSpan(_sod_ts,_sod_ts+86400)
-                # minimum of the day
-                _result = weewx.xtypes.get_aggregate('outTemp',__day,'min',db_manager)
-                # convert to centrigrade
-                if _result is not None:
-                    __min = weewx.units.convert(_result,'degree_C')
-                else:
-                    __min = None
-                # maximum of the day
-                _result = weewx.xtypes.get_aggregate('outTemp',__day,'max',db_manager)
-                # convert to centrigrade
-                if _result is not None:
-                    __max = weewx.units.convert(_result,'degree_C')
-                else:
-                    __max = None
-                # maximum over 30 degree_C is adjusted to 30
-                if __max>30: __max = 30
-                # minimum below 10 degree_C is adjusted to 10 for modGDD
-                if __min<10 and obs_type=='modGDD': __min = 10
-                # calculate average
-                __avg = weewx.wxformulas.cooling_degrees((__min+__max)/2,10)
-                __x = weewx.units.ValueTuple(__avg,'degree_C_day','group_degree_day')
-                if record is None: return __x
-                return weewx.units.convertStd(__x,record['usUnits'])
-            except (ValueError,TypeError,IndexError):
-                raise weewx.CannotCalculate("%s" % obs_type)
-        """
-
         # If the start of the year in question is before the first
         # record in the database, no value can be calculated. The
         # same applies if the given timestamp is in future.
-        if _soy_ts<db_manager.first_timestamp or _sod_ts>db_manager.last_timestamp:
-            raise weewx.CannotCalculate(obs_type)
+        #if _soy_ts<db_manager.first_timestamp or _sod_ts>db_manager.last_timestamp:
+        #    raise weewx.CannotCalculate(obs_type)
             
+        # growing degree days == Wachstumsgradtage
+        # https://de.wikipedia.org/wiki/Wachstumsgradtag
+        # https://en.wikipedia.org/wiki/Growing_degree-day
+        if obs_type in ['yearGDD']:
+            try:
+                # calculate from the beginning of the year up to the
+                # end of the current day
+                __timespan = TimeSpan(_soy_ts,_sod_ts+86400)
+                return self.get_aggregate('outTemp',__timespan,'GDD',db_manager,**option_dict)
+            except (ValueError,TypeError,IndexError,KeyError):
+                raise weewx.CannotCalculate("%s" % obs_type)
+
         # calculate GTS values for the given year 
         # (if record['dateTime'] is within the current year, the
         # value is calculated up to the current day (today))
         self.calc_gts(_soy_ts,db_manager)
         
+        # growing degree days == Wachstumsgradtage
+        # https://de.wikipedia.org/wiki/Wachstumsgradtag
+        # https://en.wikipedia.org/wiki/Growing_degree-day
+        if obs_type in ['seasonGDD']:
+            try:
+                # calculate from the beginning of the year up to the
+                # end of the current day
+                __start_ts = self.gts_date[_soy_ts]
+                if __start_ts and _sod_ts>=__start_ts and _sod_ts<_soy_ts+26179200:
+                    __timespan = TimeSpan(__start_ts,_sod_ts+86400)
+                    return self.get_aggregate('outTemp',__timespan,'GDD',db_manager,**option_dict)
+            except (ValueError,TypeError,IndexError,KeyError):
+                #raise weewx.CannotCalculate("%s" % obs_type)
+                pass
+            return weewx.units.ValueTuple(None,'degree_C_day','group_degree_day')
+
         # check if the requested timestamp record['dateTime'] is within
         # the current day (today)
         # Note: After self.calc_gts() is run, self.last_gts_date
@@ -588,6 +647,7 @@ class GTSType(weewx.xtypes.XType):
         if record is None: return __x
         return weewx.units.convertStd(__x,record['usUnits'])
 
+        
     def calc_radiation_integral(self,obs_type,timespan,db_manager):
         """calculate radiation integral over time
         
@@ -632,6 +692,106 @@ class GTSType(weewx.xtypes.XType):
         return None
 
 
+    def calc_GDD_integral(self,obs_type,timespan,db_manager,base_t,limit_t,stop_t):
+        """ calculate growing degree days as integral over time"""
+        try:
+            # make sure limit_t and stop_t are not None
+            if not limit_t: limit_t = 1000.0
+            if not stop_t: stop_t = 1000.0
+            logdbg("GDD integral base=%s limit=%s stop=%s" % (base_t,limit_t,stop_t))
+            # maximum growing degree value
+            __gdlimit = limit_t - base_t
+            # query data base and calculate integral
+            _result = db_manager.getSql(
+                           'SELECT sum('
+                           '  CASE'
+                           '    WHEN `%s`>%.1f THEN 0.0'
+                           '    WHEN `%s`>%.1f THEN %.1f'
+                           '    WHEN `%s`<%.1f THEN 0.0'
+                           '    ELSE `%s`-%.1f'
+                           '  END*`interval`/1440.0),'
+                           '  MIN(usUnits),MAX(usUnits) '
+                           'FROM %s '
+                           'WHERE dateTime>? AND dateTime<=?'
+                    % (obs_type,stop_t,
+                       obs_type,limit_t,__gdlimit,
+                       obs_type,base_t,
+                       obs_type,base_t,
+                       db_manager.table_name),timespan)
+            if _result is None:
+                raise weewx.CannotCalculate("calculate GDD: no temperature data in database")
+            if _result[0] is not None:
+                if not _result[1] == _result[2]:
+                    raise weewx.CannotCalculate("calculate GDD: inconsistent units")
+            _unit,_ugroup=weewx.units.getStandardUnitType(_result[1],obs_type,'GDD')
+            logdbg("GDD integral unit=%s unitgroup=%s" % (_unit,_ugroup))
+            return weewx.units.ValueTuple(_result[0],_unit,_ugroup)
+        except weedb.OperationalError as e:
+            raise weewx.CannotCalculate("calculate GDD integral: Database OperationalError '%s'" % e)
+        except (ValueError, TypeError) as e:
+            raise weewx.CannotCalculate("calculate GDD integral: %s" % e)
+        return None
+
+
+    def __genDaySpans(self, withoutdst, start_ts, stop_ts):
+        if withoutdst:
+            # return day spans in Local Mean Time
+            return genDaySpansWithoutDST(start_ts, stop_ts)
+        # otherwise return day spans in local timezone time
+        return weeutil.weeutil.genDaySpans(start_ts, stop_ts)
+
+
+    def calc_GDD_avg(self,obs_type,timespan,db_manager,method,base_t,limit_t,stop_t,islmt):
+        """ calculate growing degree days based on the average of
+            minimum and maximum temperature of the day or based of
+            the average temperature of the day"""
+        if not limit_t: limit_t = 1000.0
+        if not stop_t: stop_t = 1000.0
+        total = 0.0
+        count = 0
+        try:
+          for daySpan in self.__genDaySpans(islmt, timespan.start, timespan.stop):
+            #loginf(daySpan)
+            if method=='dayavg':
+                # method 'dayavg'
+                # Get avg temperature for the day as a value tuple
+                Tavg_t = weewx.xtypes.get_aggregate(obs_type, daySpan, 'avg', db_manager)
+                # Make sure it's valid before including it in the aggregation:
+                if Tavg_t is not None and Tavg_t[0] is not None:
+                    avg_t = Tavg_t[0]
+                else:
+                    avg_t = None
+            else:
+                # method 'hiloavgA' and 'hiloavgB'
+                # Get min and max temperature for the day as a value tuple
+                #loginf("a")
+                Tmax_t = weewx.xtypes.get_aggregate(obs_type, daySpan, 'max', db_manager)
+                #loginf("b")
+                Tmin_t = weewx.xtypes.get_aggregate(obs_type, daySpan, 'min', db_manager)
+                #loginf("c")
+                # Make sure it's valid before including it in the aggregation:
+                if Tmax_t is not None and Tmax_t[0] is not None and Tmin_t is not None and Tmin_t[0] is not None:
+                    if method=='hiloavgB'  and Tmin_t[0]<base_t:
+                        Tmin_t = weewx.units.ValueTuple(base_t, Tmin_t[1], Tmin_t[2])
+                    # average of daily max and min temperature
+                    avg_t = (Tmax_t[0]+Tmin_t[0])/2
+                else:
+                    avg_t = None
+            if avg_t is not None:
+                # if the average is above upper limit set it to upper limit
+                if limit_t is not None and avg_t>limit_t: avg_t = limit_t
+                total += weewx.wxformulas.cooling_degrees(avg_t,base_t)
+                count += 1
+        except Exception as e:
+          logerr(e)
+        value = total
+        # Look up the unit type and group of the result:
+        t, g = weewx.units.getStandardUnitType(db_manager.std_unit_system, 
+                                               obs_type, 'GDD')
+        # Return as a value tuple
+        return weewx.units.ValueTuple(value, t, g)
+        
+        
     def get_aggregate(self, obs_type, timespan, aggregate_type, db_manager, **option_dict):
 
         if obs_type is None:
@@ -646,6 +806,93 @@ class GTSType(weewx.xtypes.XType):
         if aggregate_type=='energy_integral':
             if obs_type in weewx.units.obs_group_dict and weewx.units.obs_group_dict[obs_type]=='group_radiation':
                 return self.calc_radiation_integral(obs_type,timespan,db_manager)
+        
+        # growing degree days == Wachstumsgradtage
+        # https://de.wikipedia.org/wiki/Wachstumsgradtag
+        # https://en.wikipedia.org/wiki/Growing_degree-day
+        if aggregate_type in ['growdeg','GDD']:
+            # growing degree day can only be calculated for a temperature
+            if weewx.units.obs_group_dict.get(obs_type,'')!='group_temperature':
+                raise weewx.CannotCalculate("%s is not temperature for aggregation %s" % (obs_type,aggregate_type))
+            # if the base value is defined in skin.conf or weewx.conf, get
+            # it for default
+            units_dict = option_dict.get('skin_dict', {}).get('Units', {})
+            dd_dict = units_dict.get('DegreeDays', {})
+            base_vt = dd_dict.get('growing_base', weewx.xtypes.AggregateHeatCool.default_growbase)
+            # if parameters are specified get them
+            val = option_dict.get('val')
+            #loginf("%s" % type(val))
+            #loginf(val)
+            if val:
+                # GDD with parameters
+                try:
+                    # dict
+                    method = val.get('method','integral')
+                    base_vt = val.get('base',base_vt)
+                    limit_vt = val.get('limit',self.GDD_LIMIT_VT)
+                    stop_vt = val.get('stop')
+                except TypeError:
+                    # tuple used as base temperature
+                    base_vt = weewx.units.ValueTuple(float(val[0]),val[1],'group_temperature')
+                    limit_vt = None
+                    stop_vt = None
+                    method = 'integral'
+            else:
+                # GDD alone: use defaults
+                method = 'integral'
+                limit_vt = self.GDD_LIMIT_VT
+                stop_vt = None
+            # Convert to a ValueTuple in the same unit system as the database
+            __base = weewx.units.convertStd(
+                         (float(base_vt[0]),base_vt[1],'group_temperature'),
+                         db_manager.std_unit_system)[0]
+            if limit_vt:
+                try:
+                    __limit = weewx.units.convertStd(
+                         (float(limit_vt[0]),limit_vt[1],'group_temperature'),
+                         db_manager.std_unit_system)[0]
+                except IndexError:
+                    if limit_vt.lower()=='none': __limit = None
+            else:
+                __limit = None
+            if stop_vt:
+                try:
+                    __stop = weewx.units.convertStd(
+                         (float(stop_vt[0]),stop_vt[1],'group_temperature'),
+                         db_manager.std_unit_system)[0]
+                except IndexError:
+                    if stop_vt.lower()=='none': __stop = None
+            else:
+                __stop = None
+            #loginf("method %s" % method)
+            #loginf(base_vt)
+            #loginf(limit_vt)
+            # calculate GDD sum
+            if method=='integral':
+                # integral over timespan
+                return self.calc_GDD_integral(obs_type,timespan,db_manager,__base,__limit,__stop)
+            if method in ['hiloavgA','hiloavgB','dayavg']:
+                # based on daily average or average of high and low.
+                # Check if day border should be based on Local Mean Time
+                # or local timezone time
+                __lmt_tz = option_dict.get('LMT',{}).get('timezone')
+                return self.calc_GDD_avg(obs_type,timespan,db_manager,method,__base,__limit,__stop,__lmt_tz)
+            if method=='weewx' and obs_type=='outTemp':
+                # call builtin method of WeeWX for outTemp
+                return weewx.xtypes.get_aggregate('growdeg',timespan,'sum',db_manager,**option_dict)
+            raise weewx.CannotCalculate("GDD %s: unknown method" % method)
+        
+        # accumulated growing degree days
+        if obs_type=='yearGDD' or obs_type=='seasonGDD':
+            #loginf("GDD %s" % option_dict)
+            #loginf("GDD %s" % aggregate_type)
+            if aggregate_type.lower()=='avg':
+                if timespan.start>time.time() or (timespan.start+timespan.stop)/2>time.time()+90000:
+                    return weewx.units.ValueTuple(None,'degree_C_day','group_degree_days')
+                return self.get_scalar(obs_type,{'dateTime':(timespan.start+timespan.stop)/2},db_manager,**option_dict)
+            if aggregate_type.lower()=='last':
+                return self.get_scalar(obs_type,{'dateTime':timespan.stop},db_manager,**option_dict)
+            raise weewx.UnknownAggregation("%s undefinded aggregation %s" % (obs_type,aggregation_type))
 
         # This function handles 'GTS' and 'GTSdate'.
         if obs_type!='GTS' and obs_type!='GTSdate':
@@ -706,7 +953,11 @@ class GTSType(weewx.xtypes.XType):
                         # timespan.start <= __b <= timespan.stop
                         if __b-timespan.start>timespan.stop-__b:
                             __b=__a
-                    __x=self.get_gts(obs_type,__b,_soye_ts)
+                            _soye_ts = _soya_ts
+                    if __b>=_soye_ts+13046400:
+                        __x = weewx.units.ValueTuple(None,'degree_C_day','group_degree_day')
+                    else:
+                        __x=self.get_gts(obs_type,__b,_soye_ts)
                 elif _soya_ts==_soye_ts and _soya_ts in self.gts_values:
                     # timespan within the same year but more than one day
                     # (not much use, but calculated anyway)
@@ -793,6 +1044,8 @@ class GTSType(weewx.xtypes.XType):
                     
         raise weewx.CannotCalculate("%s %s" % (obs_type,aggregate_type))
 
+
+
 # This is a WeeWX service, whose only job is to register and unregister the extension
 class GTSService(StdService):
 
@@ -810,8 +1063,16 @@ class GTSService(StdService):
         # Register the class
         weewx.xtypes.xtypes.append(self.GTSextension)
         
+        # Register the tags 
+        # Note: This can be overwritten by the 'search_list' entry in skin_dict
+        weewx.cheetahgenerator.default_search_list.append('user.dayboundarystats.DayboundaryStats')
+        
     def shutDown(self):
     
         # Engine is shutting down. Remove the registration
         weewx.xtypes.xtypes.remove(self.GTSextension)
+        
+        # Remove tag registration
+        weewx.cheetahgenerator.default_search_list.remove('user.dayboundarystats.DayboundaryStats')
+
 

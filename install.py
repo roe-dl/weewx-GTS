@@ -10,7 +10,7 @@ def loader():
 class GTSInstaller(ExtensionInstaller):
     def __init__(self):
         super(GTSInstaller, self).__init__(
-            version="0.5.2",
+            version="0.6b1",
             name='GTS',
             description='Provides Gruenlandtemperatursumme (GTS), a kind of growing degree days',
             author="Johanna Roedenbeck",
@@ -23,6 +23,8 @@ class GTSInstaller(ExtensionInstaller):
                   'GTSdate':'software,archive',
                   'utcoffsetLMT':'software,archive',
                   'dayET':'prefer_hardware,archive',
-                  'ET24':'prefer_hardware,archive'}}},
-            files=[('bin/user', ['bin/user/GTS.py'])]
+                  'ET24':'prefer_hardware,archive',
+                  'yearGDD':'software,archive',
+                  'seasonGDD':'software,archive'}}},
+            files=[('bin/user', ['bin/user/GTS.py','bin/usr/dayboundarystats.py'])]
             )

@@ -20,3 +20,8 @@
 * local time offset rounded to whole minutes for Python < 3.7
 0.5.2 01jun2021
 * fix bug that creates an exception if the timespan starts after May 31st
+0.6b1 11jun2021
+* adapted to changed XType api of coming WeeWX 4.6
+* tags for day boundaries different to local timezone time
+* observation type yearGDD and seasonGDD
+* aggregation type GDD (or growdeg)
