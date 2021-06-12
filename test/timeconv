@@ -1,0 +1,72 @@
+#!/usr/bin/python3
+
+import sys
+import time
+import datetime
+
+td=datetime.timedelta(seconds=3130)
+tz=datetime.timezone(td,"hä")
+
+def print_time(x):
+    print("%-25s tm_isdst=%-2s tm_gmtoff=%s" % (
+        time.strftime("%d.%m.%Y %H:%M:%S %Z",x),
+        x.tm_isdst,x.tm_gmtoff))
+
+def tzz(t,tz):
+    return time.struct_time(tm_year=t.tm_year,tm_mon=t.tm_mon,tm_mday=t.tm_mday,tm_hour=18)
+                #tm_zone=tz)
+        
+def date_to_unix(x,z,zt):
+    print(zt)
+    if s.find('-')>=0:
+        if z is None:
+            y=time.strptime(x,"%Y-%m-%d")
+        else:
+            y=time.strptime(x+' '+z,"%Y-%m-%d %H:%M:%S")
+            if zt is not None: 
+                y=time.strptime(x+' '+z+' '+zt,"%Y-%m-%d %H:%M:%S %Z")
+                #y=tzz(y,zt)
+    elif s.find('.')>=0:
+        if z is None:
+            y=time.strptime(x,"%d.%m.%Y")
+        else:
+            y=time.strptime(x+' '+z,"%d.%m.%Y %H:%M:%S")
+            if zt is not None: y=tzz(y,zt)
+    print(y)
+    ti=time.mktime(y)
+    print(ti)
+    print_time(time.gmtime(ti))
+    print_time(time.localtime(ti))
+    dt=datetime.datetime.fromtimestamp(ti,datetime.timezone.utc)
+    print(dt)
+    dt=datetime.datetime.fromtimestamp(ti,tz)
+    print(dt)
+    dt=datetime.datetime(dt.year,1,1,0,0,0,0,tz)
+    print(dt)
+    print(dt.timestamp())
+    pass
+
+def unix_to_date(x):
+    print(x)
+    print_time(time.gmtime(x))
+    print_time(time.localtime(x))
+
+if __name__ == "__main__":
+    s = sys.argv[1]
+    try:
+        t = sys.argv[2]
+    except IndexError:
+        t = None
+    if t is not None:
+        try:
+            zt=sys.argv[3]
+        except IndexError:
+            zt=None
+    else:
+        zt=None
+    if s.find('-')>=0 or s.find('.')>=0:
+        date_to_unix(s,t,zt)
+    else:
+        x = float(s)
+        unix_to_date(x)
+        

@@ -101,6 +101,57 @@ These examples create image files named 'monthGTS.png' or 'yearGTS.png', respect
 <img src="yearGTS.png" />
 ```
 
+### Growing degree days
+
+#### Display values (CheetahGenerator)
+
+* **yearGDD**: the sum or integral of growing degrees from the beginning of
+  the actual year up to the current time
+* **seasonGDD**: the sum or integral of growing degrees from `GTSdate` up to
+  the current time. Before `GTSdate` the value is undefined. After October 31st
+  it is undefined, too.
+* aggregation type **GDD** (or **growdeg**): Used to calculate growing
+  degree days for observation types other than `outTemp`. This can be
+  every temperature value, say greenhouse temperature.
+
+#### Diagrams (ImageGenerator)
+
+Within \[\[year_images\]\]:
+
+```
+        [[[yearGDD]]]
+            aggregate_type = avg
+            [[[[yearGDD]]]]
+                label = Growing degree days
+            [[[[seasonGDD]]]]
+                label = Season growing degree days
+```
+
+This example creates an image files named 'yearGDD.png'. To display it within the web page appropriate \<img\> tags need to be included for example in index.html.tmpl:
+  
+```
+<img src="yearGDD.png" />
+```
+
+You can combine that with GTS:
+
+```
+        [[[yearGTS]]]
+            aggregate_type = avg
+            [[[[GTS]]]]
+                label = Grünlandtemperatursumme
+            [[[[yearGDD]]]]
+                label = Growing degree days
+            [[[[seasonGDD]]]]
+                label = Season growing degree days
+```
+
+To display it within the web page include the appropriate \<img\> tag for example
+into index.html.tmpl:
+```
+<img src="yearGTS.png" />
+```
+
 ### Evapotranspiration
 
 #### Display values (CheetahGenerator)

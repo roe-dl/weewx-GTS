@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.6b1"
+VERSION = "0.6b2"
 
 # deal with differences between python 2 and python 3
 try:
@@ -117,7 +117,7 @@ from weeutil.weeutil import TimeSpan
 from weewx.engine import StdService
 from weewx.cheetahgenerator import SearchList
 from weewx.tags import TimeBinder, TimespanBinder
-
+from user.dayboundarystats import startOfDayTZ, startOfYearTZ
 
 try:
     # Test for new-style weewx logging by trying to import weeutil.logger
@@ -153,6 +153,7 @@ except ImportError:
 # The following functions are similar to that in weeutil/weeutil.py,
 # but honour the timezone tz and do _not_ honour daylight savings time.
 
+'''
 def startOfDayTZ(time_ts,soy_ts):
     """ get the start of the day time_ts is in 
     
@@ -175,7 +176,7 @@ def startOfYearTZ(time_ts,tz):
     dt=datetime.datetime(dt.year,1,1,0,0,0,0,tz)
     # convert back to timestamp
     return int(dt.timestamp())
-
+'''
 
 def dayOfGTSYear(time_ts,soy_ts):
     """ get the day of the year, starting at 0 for Jan 1st
@@ -242,7 +243,7 @@ def genDaySpansWithoutDST(start_ts, stop_ts):
     for time_ts in range(int(start_ts),int(stop_ts),86400):
         yield TimeSpan(int(time_ts),int(time_ts+86400))
     
-
+'''
 def genYearSpansTZ(tz, start_ts, stop_ts):
     if None in (start_ts, stop_ts): return
     if start_ts>stop_ts: return
@@ -251,7 +252,7 @@ def genYearSpansTZ(tz, start_ts, stop_ts):
         _soye_ts = startOfYearTZ(_soya_ts+31968000,tz)
         yield TimeSpan(int(_soya_ts),int(_soye_ts))
         _soya_ts = _soye_ts
-
+'''
 
 class GTSType(weewx.xtypes.XType):
 

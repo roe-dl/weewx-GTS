@@ -30,7 +30,7 @@
 
 """
 
-VERSION = "0.6b1"
+VERSION = "0.6b2"
 
 # deal with differences between python 2 and python 3
 try:
@@ -91,19 +91,6 @@ except ImportError:
     def logerr(msg):
         logmsg(syslog.LOG_ERR, msg)
 
-# define tzinfo class for Local Mean Time
-
-"""
-class LMTtzinfo(datetime.timezone):
-
-    def __init__(longitude):
-        try:
-            timeoffset=datetime.timedelta(seconds=self.generator.stn_info.longitude*240)
-        except ValueError:
-            # Python before 3.7 requires timedelta to be whole minutes
-            timeoffset = datetime.timedelta(minutes=(self.generator.stn_info.longitude*240)//60)
-        super(LMTtzinfo,self).__init__(timeoffset,"LMT")
-"""
 
 # The following functions are similar to that in weeutil/weeutil.py,
 # but honour the timezone tz and do _not_ honour daylight savings time.
@@ -206,13 +193,13 @@ def genDaySpansWithoutDST(start_ts, stop_ts):
 
 class DayboundaryTimeBinder(TimeBinder):
 
-    def __init__(self, lmt, db_lookup, report_time,
+    def __init__(self, tz_dict, db_lookup, report_time,
                  formatter=weewx.units.Formatter(), converter=weewx.units.Converter(),
                  **option_dict):
         super(DayboundaryTimeBinder,self).__init__(db_lookup, report_time,
                  formatter=formatter,converter=converter,**option_dict)
-        self.lmt = lmt
-        self.lmt_tz = lmt.get('timezone')
+        self.lmt = tz_dict
+        self.lmt_tz = tz_dict.get('timezone')
 
     def _get_timezone(self, offset=None):
         """ get the offset to UTC for the required day boundary """
@@ -366,10 +353,6 @@ class DayboundaryStats(SearchList):
             # Python before 3.7 requires timedelta to be whole minutes
             self.timeoffset = datetime.timedelta(minutes=(self.generator.stn_info.longitude_f*240)//60)
             self.lmt_tz = datetime.timezone(self.timeoffset,"LMT")
-        """
-        self.lmt_tz = LMTtzinfo(self.generator.stn_info.longitude_f)
-        self.timeoffset = self.lmt_tz.utcoffset(None)
-        """
 
     def get_extension_list(self, timespan, db_lookup):
         """Returns a search list extension with two additions.
