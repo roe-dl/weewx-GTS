@@ -55,7 +55,7 @@ import datetime
 #import weedb
 import weewx
 import weewx.units
-from weeutil.weeutil import TimeSpan
+from weeutil.weeutil import TimeSpan, to_int
 from weewx.cheetahgenerator import SearchList
 from weewx.tags import TimeBinder, TimespanBinder
 
@@ -90,6 +90,20 @@ except ImportError:
 
     def logerr(msg):
         logmsg(syslog.LOG_ERR, msg)
+
+# define tzinfo class for Local Mean Time
+
+"""
+class LMTtzinfo(datetime.timezone):
+
+    def __init__(longitude):
+        try:
+            timeoffset=datetime.timedelta(seconds=self.generator.stn_info.longitude*240)
+        except ValueError:
+            # Python before 3.7 requires timedelta to be whole minutes
+            timeoffset = datetime.timedelta(minutes=(self.generator.stn_info.longitude*240)//60)
+        super(LMTtzinfo,self).__init__(timeoffset,"LMT")
+"""
 
 # The following functions are similar to that in weeutil/weeutil.py,
 # but honour the timezone tz and do _not_ honour daylight savings time.
@@ -138,15 +152,16 @@ def daySpanTZ(tz, time_ts, grace=1, days_ago=0):
     return TimeSpan(sod_ts,sod_ts+86400)
 
 
-def weekSpanTZ(tz, startOfWeek=6, grace=1, weeks_ago=0):
+def weekSpanTZ(tz, time_ts, startOfWeek=6, grace=1, weeks_ago=0):
     """Returns a TimeSpan representing a week that includes a given time. """
     if time_ts is None: return None
     time_ts -= grace
-    _day_date = datetime.date.fromtimestamp(time_ts,tz)
+    _day_date = datetime.datetime.fromtimestamp(time_ts,tz)
     _day_of_week = _day_date.weekday()
     _delta = _day_of_week - startOfWeek
     if _delta < 0: _delta += 7
     _sunday_date = _day_date - datetime.timedelta(days=(_delta + 7 * weeks_ago))
+    _sunday_date = _sunday_date.replace(hour=0,minute=0,second=0,microsecond=0)
     _next_sunday_date = _sunday_date + datetime.timedelta(days=7)
     return TimeSpan(int(_sunday_date.timestamp()),int(_next_sunday_date.timestamp()))
     
@@ -291,7 +306,7 @@ class DayboundaryTimeBinder(TimeBinder):
             self.report_time, week_start, weeks_ago=weeks_ago),
             self.lmt, self.db_lookup, data_binding=data_binding,
             context='week', formatter=self.formatter, converter=self.converter,
-            LMT=self.lmt
+            LMT=self.lmt,
             **self.option_dict)
 
     def LMTmonth(self, data_binding=None, months_ago=0):
@@ -351,6 +366,10 @@ class DayboundaryStats(SearchList):
             # Python before 3.7 requires timedelta to be whole minutes
             self.timeoffset = datetime.timedelta(minutes=(self.generator.stn_info.longitude_f*240)//60)
             self.lmt_tz = datetime.timezone(self.timeoffset,"LMT")
+        """
+        self.lmt_tz = LMTtzinfo(self.generator.stn_info.longitude_f)
+        self.timeoffset = self.lmt_tz.utcoffset(None)
+        """
 
     def get_extension_list(self, timespan, db_lookup):
         """Returns a search list extension with two additions.
