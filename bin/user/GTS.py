@@ -451,7 +451,10 @@ class GTSType(weewx.xtypes.XType):
         if obs_type=='GTS':
             # Gruenlandtemperatursumme GTS
             try:
-                __x=self.gts_values[soy_ts][dayOfGTSYear(sod_ts,soy_ts)]
+                if soy_ts is None or soy_ts not in self.gts_values:
+                    __x = None
+                else:
+                    __x = self.gts_values[soy_ts][dayOfGTSYear(sod_ts,soy_ts)]
                 return weewx.units.ValueTuple(__x,'degree_C_day','group_degree_day')
             except (ValueError,TypeError,IndexError,KeyError):
                 logerr("soy_ts=%s sod_ts=%s" % (soy_ts,sod_ts))
