@@ -879,6 +879,8 @@ class GTSType(weewx.xtypes.XType):
                 # Check if day border should be based on Local Mean Time
                 # or local timezone time
                 __lmt_tz = option_dict.get('LMT',{}).get('timezone')
+                if __lmt_tz is None:
+                    __lmt_tz = option_dict.get('dayboundary',{}).get('timezone')
                 return self.calc_GDD_avg(obs_type,timespan,db_manager,method,__base,__limit,__stop,__lmt_tz)
             if method=='weewx' and obs_type=='outTemp':
                 # call builtin method of WeeWX for outTemp

@@ -3,14 +3,30 @@
 
 """
 
+  Provides:
+
+  $offsethour(data_binding=None, hours_ago=0, dayboundary=None)
   $offsetday(data_binding=None, days_ago=0, dayboundary=None)
   $offsetyesterday(data_binding=None, dayboundary=None)
   $offsetmonth(data_binding=None, months_ago=0, dayboundary=None)
   $offsetyear(data_binding=None, years_ago=0, dayboundary=None)
+  $LMThour(data_binding=None, hours_ago=0)
   $LMTday(data_binding=None, days_ago=0)
   $LMTyesterday(data_binding=None)
   $LMTmonth(data_binding=None, months_ago=0)
   $LMTyear(data_binding=None, years_ago=0)
+  
+  "dayboundary" is an offset to UTC in seconds, that gives the 
+  time of day that is used as day boundary for the given
+  aggregation. In case of Python <3.7 the value is rounded
+  to whole minutes.
+  
+  "LMT" means Local Mean Time of the station location.
+  
+  source: examples/stats.py
+  
+  The functions defining time spans are similar to those from
+  weeutil.weeutil, but honour an arbitrary timezone offset.
 
 """
 
@@ -36,7 +52,7 @@ except ImportError:
 import time
 import datetime
 
-import weedb
+#import weedb
 import weewx
 import weewx.units
 from weeutil.weeutil import TimeSpan
@@ -102,6 +118,17 @@ def startOfYearTZ(time_ts,tz):
     return int(dt.timestamp())
 
 
+def hourSpanTZ(tz, time_ts, grace=1, hours_ago=0):
+    """ Returns a TimeSpan for x hours ago  """
+    if time_ts is None: return None
+    time_ts -= grace
+    dt = datetime.datetime.fromtimestamp(time_ts,tz)
+    hour_start_dt = dt.replace(minute=0, second=0, microsecond=0)
+    start_span_dt = hour_start_dt - datetime.timedelta(hours=hours_ago)
+    stop_span_dt = start_span_dt + datetime.timedelta(hours=1)
+    return TimeSpan(int(start_span_dt.timestamp()),int(stop_span_dt.timestamp()))
+    
+
 def daySpanTZ(tz, time_ts, grace=1, days_ago=0):
     """ Returns a TimeSpan representing a day in timezone tz
         that includes the given time."""
@@ -111,6 +138,19 @@ def daySpanTZ(tz, time_ts, grace=1, days_ago=0):
     return TimeSpan(sod_ts,sod_ts+86400)
 
 
+def weekSpanTZ(tz, startOfWeek=6, grace=1, weeks_ago=0):
+    """Returns a TimeSpan representing a week that includes a given time. """
+    if time_ts is None: return None
+    time_ts -= grace
+    _day_date = datetime.date.fromtimestamp(time_ts,tz)
+    _day_of_week = _day_date.weekday()
+    _delta = _day_of_week - startOfWeek
+    if _delta < 0: _delta += 7
+    _sunday_date = _day_date - datetime.timedelta(days=(_delta + 7 * weeks_ago))
+    _next_sunday_date = _sunday_date + datetime.timedelta(days=7)
+    return TimeSpan(int(_sunday_date.timestamp()),int(_next_sunday_date.timestamp()))
+    
+    
 def monthSpanTZ(tz, time_ts, grace=1, months_ago=0):
     """ get the start of the GTS month time_ts is in """
     if time_ts is None:
@@ -148,8 +188,6 @@ def genDaySpansWithoutDST(start_ts, stop_ts):
         yield TimeSpan(int(time_ts),int(time_ts+86400))
     
 
-# provides $LMTday, $LMTyesterday, and $LMTyear
-# source: examples/stats.py
 
 class DayboundaryTimeBinder(TimeBinder):
 
@@ -172,37 +210,68 @@ class DayboundaryTimeBinder(TimeBinder):
                 # Python before 3.7 requires timedelta to be whole minutes
                 timeoffset = datetime.timedelta(minutes=offset_f//60)
                 timetz = datetime.timezone(timeoffset,"")
-            return timetz
+            return {'timeoffset':timeoffset,'timezone':timetz},timetz
         # if offset is None return Local Mean Time
-        return self.lmt_tz
+        return self.lmt,self.lmt_tz
     
+    def offsethour(self, data_binding=None, hours_ago=0, dayboundary=None):
+        time_dict,time_tz = self._get_timezone(dayboundary)
+        return DayboundaryTimespanBinder(hourSpanTZ(time_tz,
+                              self.report_time, hours_ago=hours_ago),
+                              self.lmt, self.db_lookup, data_binding=data_binding,
+                              context='day', formatter=self.formatter, converter=self.converter,
+                              dayboundary=time_dict,
+                              **self.option_dict)
+                              
     def offsetday(self, data_binding=None, days_ago=0, dayboundary=None):
-        return DayboundaryTimespanBinder(daySpanTZ(self._get_timezone(dayboundary), 
+        time_dict,time_tz = self._get_timezone(dayboundary)
+        return DayboundaryTimespanBinder(daySpanTZ(time_tz, 
                               self.report_time, days_ago=days_ago),
                               self.lmt, self.db_lookup, data_binding=data_binding,
                               context='day', formatter=self.formatter, converter=self.converter,
-                              dayboundary=self.lmt,
+                              dayboundary=time_dict,
                               **self.option_dict)
 
     def offsetyesterday(self, data_binding=None, dayboundary=None):
         return self.offsetday(data_binding, days_ago=1,dayboundary=dayboundary)
 
-    def offsetmonth(self, data_binding=None, months_ago=0, dayboundary=None):
+    def offsetweek(self, data_binding=None, weeks_ago=0, dayboundary=None):
+        week_start = to_int(self.option_dict.get('week_start', 6))
+        time_dict,time_tz = self._get_timezone(dayboundary)
         return DayboundaryTimespanBinder(
-            monthSpanTZ(self._get_timezone(dayboundary), 
+            weekSpanTZ(self.time_tz,
+            self.report_time, week_start, weeks_ago=weeks_ago),
+            self.lmt, self.db_lookup, data_binding=data_binding,
+            context='week', formatter=self.formatter, converter=self.converter,
+            dayboundary=time_dict,
+            **self.option_dict)
+
+    def offsetmonth(self, data_binding=None, months_ago=0, dayboundary=None):
+        time_dict,time_tz = self._get_timezone(dayboundary)
+        return DayboundaryTimespanBinder(
+            monthSpanTZ(time_tz, 
             self.report_time, months_ago=months_ago),
             self.lmt, self.db_lookup, data_binding=data_binding,
             context='month', formatter=self.formatter, converter=self.converter,
-            dayboundary=self.lmt,
+            dayboundary=time_dict,
             **self.option_dict)
 
     def offsetyear(self, data_binding=None, years_ago=0, dayboundary=None):
+        time_dict,time_tz = self._get_timezone(dayboundary)
         return DayboundaryTimespanBinder(
-            yearSpanTZ(self._get_timezone(dayboundary), self.report_time, years_ago=years_ago),
+            yearSpanTZ(time_tz, self.report_time, years_ago=years_ago),
             self.lmt, self.db_lookup, data_binding=data_binding,
             context='year', formatter=self.formatter, converter=self.converter,
-            dayboundary=self.lmt,
+            dayboundary=time_dict,
             **self.option_dict)
+
+    def LMThour(self, data_binding=None, hours_ago=0):
+        return DayboundaryTimespanBinder(hourSpanTZ(self.lmt_tz,
+                              self.report_time, hours_ago=hours_ago),
+                              self.lmt, self.db_lookup, data_binding=data_binding,
+                              context='day', formatter=self.formatter, converter=self.converter,
+                              LMT=self.lmt,
+                              **self.option_dict)
 
     def LMTday(self, data_binding=None, days_ago=0):
         return DayboundaryTimespanBinder(daySpanTZ(self.lmt_tz, 
@@ -214,6 +283,16 @@ class DayboundaryTimeBinder(TimeBinder):
 
     def LMTyesterday(self, data_binding=None):
         return self.LMTday(data_binding, days_ago=1)
+
+    def LMTweek(self, data_binding=None, weeks_ago=0, dayboundary=None):
+        week_start = to_int(self.option_dict.get('week_start', 6))
+        return DayboundaryTimespanBinder(
+            weekSpanTZ(self.lmt_tz,
+            self.report_time, week_start, weeks_ago=weeks_ago),
+            self.lmt, self.db_lookup, data_binding=data_binding,
+            context='week', formatter=self.formatter, converter=self.converter,
+            LMT=self.lmt
+            **self.option_dict)
 
     def LMTmonth(self, data_binding=None, months_ago=0):
         return DayboundaryTimespanBinder(
