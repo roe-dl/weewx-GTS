@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.6b2"
+VERSION = "0.6b3"
 
 # deal with differences between python 2 and python 3
 try:
@@ -153,31 +153,6 @@ except ImportError:
 # The following functions are similar to that in weeutil/weeutil.py,
 # but honour the timezone tz and do _not_ honour daylight savings time.
 
-'''
-def startOfDayTZ(time_ts,soy_ts):
-    """ get the start of the day time_ts is in 
-    
-        Don't use weeutil.weeutil.startOfDay() here. It handles daylight
-        saving time different. 
-        
-    """
-    return int(time_ts - (time_ts-soy_ts) % 86400)
-
-
-def startOfYearTZ(time_ts,tz):
-    """ get the start of the GTS year time_ts is in """
-    if time_ts is None:
-        # the year of today
-        dt=datetime.datetime.now(tz)
-    else:
-        # convert timestamp to local time according to timezone tz
-        dt=datetime.datetime.fromtimestamp(time_ts,tz)
-    # Jan 1st 00:00:00 according to timezone tz
-    dt=datetime.datetime(dt.year,1,1,0,0,0,0,tz)
-    # convert back to timestamp
-    return int(dt.timestamp())
-'''
-
 def dayOfGTSYear(time_ts,soy_ts):
     """ get the day of the year, starting at 0 for Jan 1st
     
@@ -201,6 +176,7 @@ def dayOfGTSYear(time_ts,soy_ts):
     # time_ts is between Jan 1st and May 31st
     return int((time_ts-soy_ts)//86400)
 
+'''
 def daySpanTZ(tz, time_ts, grace=1, days_ago=0):
     """ Returns a TimeSpan representing a day in timezone tz
         that includes the given time."""
@@ -235,6 +211,7 @@ def yearSpanTZ(tz, time_ts, grace=1, years_ago=0):
     soya_ts = startOfYearTZ(time_ts,tz)
     soye_ts = startOfYearTZ(soya_ts+31968000,tz)
     return TimeSpan(int(soya_ts),int(soye_ts))
+'''
 
 def genDaySpansWithoutDST(start_ts, stop_ts):
     """Generator function that generates start/stop of days
@@ -243,16 +220,6 @@ def genDaySpansWithoutDST(start_ts, stop_ts):
     for time_ts in range(int(start_ts),int(stop_ts),86400):
         yield TimeSpan(int(time_ts),int(time_ts+86400))
     
-'''
-def genYearSpansTZ(tz, start_ts, stop_ts):
-    if None in (start_ts, stop_ts): return
-    if start_ts>stop_ts: return
-    _soya_ts = startOfYearTZ(start_ts,tz)
-    while _soya_ts<stop_ts:
-        _soye_ts = startOfYearTZ(_soya_ts+31968000,tz)
-        yield TimeSpan(int(_soya_ts),int(_soye_ts))
-        _soya_ts = _soye_ts
-'''
 
 class GTSType(weewx.xtypes.XType):
 
@@ -335,7 +302,7 @@ class GTSType(weewx.xtypes.XType):
         #logdbg("calculate GTS for the year %s" % time.strftime("%Y",time.localtime(soy_ts)))
         
         # this year or a past year
-        __this_year=soy_ts==startOfYearTZ(None,self.lmt_tz)
+        __this_year = -1 <= (soy_ts-startOfYearTZ(None,self.lmt_tz)) <= 1
         
         if __this_year:
             # this year: calculate until today
@@ -788,7 +755,10 @@ class GTSType(weewx.xtypes.XType):
                 count += 1
         except Exception as e:
           logerr(e)
-        value = total
+        if count>0:
+            value = total
+        else:
+            value = None
         # Look up the unit type and group of the result:
         t, g = weewx.units.getStandardUnitType(db_manager.std_unit_system, 
                                                obs_type, 'GDD')
@@ -843,6 +813,7 @@ class GTSType(weewx.xtypes.XType):
                     method = 'integral'
             else:
                 # GDD alone: use defaults
+                # Note: base_vt is set before.
                 method = 'integral'
                 limit_vt = self.GDD_LIMIT_VT
                 stop_vt = None
@@ -953,7 +924,7 @@ class GTSType(weewx.xtypes.XType):
                 if timespan.stop-timespan.start<=90000:
                     __a=startOfDayTZ(timespan.start,_soya_ts)
                     __b=startOfDayTZ(timespan.stop,_soye_ts)
-                    if __a!=__b:
+                    if -1 <= (__a-__b) <= 1:
                         # begin and end of timespan are different days
                         # according to timezone self.lmt_tz
                         # timespan.start <= __b <= timespan.stop
@@ -1007,7 +978,7 @@ class GTSType(weewx.xtypes.XType):
                     if __ts==timespan.stop:
                         __ts-=86400
                     # for today there is no value so far
-                    if __ts==startOfDayTZ(time.time(),_soye_ts):
+                    if -1 <= (__ts-startOfDayTZ(time.time(),_soye_ts)) <= 1:
                         __ts-=86400
                 __x=self.get_gts(obs_type,__ts,_soye_ts)
             elif aggregate_type=='max':

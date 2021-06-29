@@ -30,7 +30,7 @@
 
 """
 
-VERSION = "0.6b2"
+VERSION = "0.6b3"
 
 # deal with differences between python 2 and python 3
 try:
@@ -105,7 +105,7 @@ def startOfDayTZ(time_ts, soy_ts):
     return int(time_ts - (time_ts-soy_ts) % 86400)
 
 
-def startOfYearTZ(time_ts,tz):
+def startOfYearTZ(time_ts,tz,years_ago=0):
     """ get the start of the GTS year time_ts is in """
     if time_ts is None:
         # the year of today
@@ -114,9 +114,10 @@ def startOfYearTZ(time_ts,tz):
         # convert timestamp to local time according to timezone tz
         dt=datetime.datetime.fromtimestamp(time_ts,tz)
     # Jan 1st 00:00:00 according to timezone tz
-    dt=datetime.datetime(dt.year,1,1,0,0,0,0,tz)
+    dt=datetime.datetime(dt.year-years_ago,1,1,0,0,0,0,tz)
     # convert back to timestamp
-    return int(dt.timestamp())
+    return dt.timestamp()
+    #return int(dt.timestamp())
 
 
 def hourSpanTZ(tz, time_ts, grace=1, hours_ago=0):
@@ -127,7 +128,7 @@ def hourSpanTZ(tz, time_ts, grace=1, hours_ago=0):
     hour_start_dt = dt.replace(minute=0, second=0, microsecond=0)
     start_span_dt = hour_start_dt - datetime.timedelta(hours=hours_ago)
     stop_span_dt = start_span_dt + datetime.timedelta(hours=1)
-    return TimeSpan(int(start_span_dt.timestamp()),int(stop_span_dt.timestamp()))
+    return TimeSpan(start_span_dt.timestamp(),stop_span_dt.timestamp())
     
 
 def daySpanTZ(tz, time_ts, grace=1, days_ago=0):
@@ -150,7 +151,7 @@ def weekSpanTZ(tz, time_ts, startOfWeek=6, grace=1, weeks_ago=0):
     _sunday_date = _day_date - datetime.timedelta(days=(_delta + 7 * weeks_ago))
     _sunday_date = _sunday_date.replace(hour=0,minute=0,second=0,microsecond=0)
     _next_sunday_date = _sunday_date + datetime.timedelta(days=7)
-    return TimeSpan(int(_sunday_date.timestamp()),int(_next_sunday_date.timestamp()))
+    return TimeSpan(_sunday_date.timestamp(),_next_sunday_date.timestamp())
     
     
 def monthSpanTZ(tz, time_ts, grace=1, months_ago=0):
@@ -169,7 +170,7 @@ def monthSpanTZ(tz, time_ts, grace=1, months_ago=0):
     else:
         dte=datetime.datetime(dt.year,dt.month+1,1,0,0,0,0,tz)
     # convert back to timestamp
-    return TimeSpan(int(dta.timestamp()),int(dte.timestamp()))
+    return TimeSpan(dta.timestamp(),dte.timestamp())
 
 
 def yearSpanTZ(tz, time_ts, grace=1, years_ago=0):
@@ -177,17 +178,18 @@ def yearSpanTZ(tz, time_ts, grace=1, years_ago=0):
         that includes a given time."""
     if time_ts is None: time_ts = time.time()
     time_ts -= grace
-    soya_ts = startOfYearTZ(time_ts,tz)
+    soya_ts = startOfYearTZ(time_ts,tz,years_ago)
     soye_ts = startOfYearTZ(soya_ts+31968000,tz)
-    return TimeSpan(int(soya_ts),int(soye_ts))
+    return TimeSpan(soya_ts,soye_ts)
+    #return TimeSpan(int(soya_ts),int(soye_ts))
 
 
 def genDaySpansWithoutDST(start_ts, stop_ts):
     """Generator function that generates start/stop of days
        according to timezone tz"""
     if None in (start_ts, stop_ts): return
-    for time_ts in range(int(start_ts),int(stop_ts),86400):
-        yield TimeSpan(int(time_ts),int(time_ts+86400))
+    for time_ts in range(start_ts,stop_ts,86400):
+        yield TimeSpan(time_ts,time_ts+86400)
     
 
 
@@ -305,6 +307,7 @@ class DayboundaryTimeBinder(TimeBinder):
             LMT=self.lmt,
             **self.option_dict)
 
+    """
     def LMTyear(self, data_binding=None, years_ago=0):
         return DayboundaryTimespanBinder(
             yearSpanTZ(self.lmt_tz, self.report_time, years_ago=years_ago),
@@ -312,8 +315,47 @@ class DayboundaryTimeBinder(TimeBinder):
             context='year', formatter=self.formatter, converter=self.converter,
             LMT=self.lmt,
             **self.option_dict)
+    """
 
-    
+    def LMTyear(self, data_binding=None, years_ago=0, month_span=None):
+        ts = yearSpanTZ(self.lmt_tz, self.report_time, years_ago=years_ago)
+        if month_span is not None:
+            try:
+                _from = to_int(month_span[0])
+                _to = to_int(month_span[1])
+            except (ValueError,IndexError):
+                _from = to_int(month_span)
+                _to = _from
+            #loginf("%s %s" % (_from,_to))
+            try:
+                dt_from = datetime.datetime.fromtimestamp(ts.start,self.lmt_tz)
+                #loginf("1 %s %s %s" % (dt_from.year,dt_from.month,dt_from.day))
+                dt_from = dt_from.replace(month=_from)
+                #loginf(dt_from)
+                if _to>=_from:
+                    # within one year
+                    if _to<12:
+                        dt_to = datetime.datetime.fromtimestamp(ts.start,self.lmt_tz)
+                        dt_to = dt_to.replace(month=_to+1)
+                        loginf(dt_to)
+                        ts = TimeSpan(dt_from.timestamp(),dt_to.timestamp())
+                    else:
+                        ts = TimeSpan(dt_from.timestamp(),ts.end)
+                else:
+                    # includes year change
+                    dt_to = datetime.datetime.fromtimestamp(ts.stop,self.lmt_tz)
+                    dt_to = dt_to.replace(month=_to+1)
+                    ts = TimeSpan(dt_from.timestamp(),dt_to.timestamp())
+                    pass
+            except (ValueError,IndexError) as e:
+                #logerr("3 %s" % e)
+                pass
+        return DayboundaryTimespanBinder(ts,
+            self.lmt, self.db_lookup, data_binding=data_binding,
+            context='year', formatter=self.formatter, converter=self.converter,
+            LMT=self.lmt,
+            **self.option_dict)
+            
     
 class DayboundaryTimespanBinder(TimespanBinder):
 

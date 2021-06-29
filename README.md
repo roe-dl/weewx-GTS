@@ -30,6 +30,8 @@ XType extension for WeeWX to provide
            utcoffsetLMT = software, archive
            dayET = prefer_hardware, archive
            ET24 = prefer_hardware, archive
+           yearGDD = software
+           seasonGDD = software
    ...
    [Engine]
        [[Services]]
@@ -249,6 +251,42 @@ to your `skin.conf`:
 
 This creates a file for every year that data is available for.
 
+### Special time spans
+
+Sometimes day span used in meteorology are not from midnight to midnight
+but start and end at some arbitrary time of day like 09:00 a.m. To
+aggregate values with day boundaries other than midnight the following
+tags are provided.
+
+#### Arbitrary offset to UTC
+
+*  `$offsethour(data_binding=None, hours_ago=0, dayboundary=None)`
+*  `$offsetday(data_binding=None, days_ago=0, dayboundary=None)`
+*  `$offsetyesterday(data_binding=None, dayboundary=None)`
+*  `$offsetmonth(data_binding=None, months_ago=0, dayboundary=None)`
+*  `$offsetyear(data_binding=None, years_ago=0, dayboundary=None)`
+
+`dayboundary` is an offset to UTC in seconds, that sets the time of day
+to use as the day boundary for the given aggregation. In case of Python
+&lt;3.7 the value is rounded to whole minutes. 
+
+#### Local Mean Time of the station location
+
+*  `$LMThour(data_binding=None, hours_ago=0)`
+*  `$LMTday(data_binding=None, days_ago=0)`
+*  `$LMTyesterday(data_binding=None)`
+*  `$LMTmonth(data_binding=None, months_ago=0)`
+*  `$LMTyear(data_binding=None, years_ago=0, month_span=None)`
+
+Day boundary is midnight Local Mean Time which is always near the
+the antitransit of the sun at the station's location.
+
+The optional parameter `month_span` is a time span of several months
+within the given year. For example `$LMTyear(month_span=(6,8)).outTemp.avg`
+is the average temperature of the summer of the actual year.
+`$LMTyear(years_ago=1,month_span=(12,2)).outTemp.max` is the 
+maximum temparature of the last winter season.
+
 ## Algorithm:
 
 ### Grünlandtemperatursumme (GTS)
@@ -279,6 +317,7 @@ of the radiation energy is Wh/m^2.
 
 * http://www.groitzsch-wetter.de/HP/green1.html
 * http://www.regionalwetter-sa.de/sa_gruenland.php
+* WeeWX examples/stats.py
 
 ## Links:
 
