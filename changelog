@@ -30,3 +30,8 @@
 0.6b3 29jun2021
 * bug fixes
 * added missing details
+0.6b4 02aug2021
+* correct typo in install.py
+0.6 03aug2021
+* months_ago
+* release

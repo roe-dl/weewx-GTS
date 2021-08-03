@@ -5,9 +5,9 @@ XType extension for WeeWX to provide
 * "Grünlandtemperatursumme" (a kind of growing degree days) 
 * observation types 'dayET' and 'ET24' as the opposite to 'dayRain' and 'rain24'
 * additional aggregation type for 'radiation' to calculate the total energy received during the aggregation interval
-* tags for day boundaries other than midnight local timezone time (beta)
-* observation types 'yearGDD' and 'seasonGDD' (beta)
-* aggregation type 'GDD' (beta)
+* tags for day boundaries other than midnight local timezone time
+* observation types 'yearGDD' and 'seasonGDD'
+* aggregation type 'GDD'
 
 ## Installation instructions:
 
@@ -278,7 +278,7 @@ to use as the day boundary for the given aggregation. In case of Python
 *  `$LMTmonth(data_binding=None, months_ago=0)`
 *  `$LMTyear(data_binding=None, years_ago=0, month_span=None)`
 
-Day boundary is midnight Local Mean Time which is always near the
+Day boundary is midnight Local Mean Time which is always near
 the antitransit of the sun at the station's location.
 
 The optional parameter `month_span` is a time span of several months

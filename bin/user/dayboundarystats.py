@@ -30,7 +30,7 @@
 
 """
 
-VERSION = "0.6b4"
+VERSION = "0.6"
 
 # deal with differences between python 2 and python 3
 try:
@@ -163,12 +163,22 @@ def monthSpanTZ(tz, time_ts, grace=1, months_ago=0):
         # convert timestamp to local time according to timezone tz
         dt=datetime.datetime.fromtimestamp(time_ts,tz)
     time_ts -= grace
-    # month 1st 00:00:00 according to timezone tz
-    dta=datetime.datetime(dt.year,dt.month,1,0,0,0,0,tz)
-    if dt.month==12:
-        dte=datetime.datetime(dt.year+1,1,1,0,0,0,0,tz)
+    __year = dt.year
+    __month = dt.month
+    if months_ago>=12:
+        __year -= months_ago//12
+        months_ago = months_ago%12
+    if months_ago<__month:
+        __month -= months_ago
     else:
-        dte=datetime.datetime(dt.year,dt.month+1,1,0,0,0,0,tz)
+        __year -= 1
+        __month += 12 - months_ago
+    # month 1st 00:00:00 according to timezone tz
+    dta=datetime.datetime(__year,__month,1,0,0,0,0,tz)
+    if __month==12:
+        dte=datetime.datetime(__year+1,1,1,0,0,0,0,tz)
+    else:
+        dte=datetime.datetime(__year,__month+1,1,0,0,0,0,tz)
     # convert back to timestamp
     return TimeSpan(dta.timestamp(),dte.timestamp())
 
