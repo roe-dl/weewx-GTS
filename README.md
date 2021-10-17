@@ -303,12 +303,17 @@ for iteration.
 
 Examples:
 
-* `$daylight.outTemp.avg`: average temperature while the sun is up
-* ```#for $span in $LMTmonth.daylights
-  <p>$span.dateTime.format("%d"): $span.outTemp.avg</p>
-  #end for```
-  table with day of month and the average temperature while the sun
+* average temperature while the sun is up
+  ```
+  $daylight.outTemp.avg
+  ```
+* table with day of month and the average temperature while the sun
   is up on that day
+  ```
+  #for $span in $LMTmonth.daylights
+  <p>$span.dateTime.format("%d"): $span.outTemp.avg</p>
+  #end for
+  ```
 
 ## Algorithm:
 
