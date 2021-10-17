@@ -35,3 +35,7 @@
 0.6 03aug2021
 * months_ago
 * release
+0.7 17oct2021
+* extend aggregation type 'energy_integral' to 'group_power'
+* new timespan $daylight
+* new series $week.daylights $month.daylights $year.daylights

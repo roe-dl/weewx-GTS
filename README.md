@@ -256,7 +256,7 @@ This creates a file for every year that data is available for.
 Sometimes day span used in meteorology are not from midnight to midnight
 but start and end at some arbitrary time of day like 09:00 a.m. To
 aggregate values with day boundaries other than midnight the following
-tags are provided.
+tags are provided. They are used like standard `$hour`, `$day` etc. 
 
 #### Arbitrary offset to UTC
 
@@ -286,6 +286,29 @@ within the given year. For example `$LMTyear(month_span=(6,8)).outTemp.avg`
 is the average temperature of the summer of the actual year.
 `$LMTyear(years_ago=1,month_span=(12,2)).outTemp.max` is the 
 maximum temparature of the last winter season.
+
+The attribute `days` can be used together with `$LMTmonth` and `$LMTyear`
+for iteration.
+
+#### Daylight timespan
+
+* `$daylight(data_binding=None, days_ago=0)`: timespan from sunrise to
+   sunset
+* `$LMTmonth(data_binding=None, months_ago=0).daylights`: series of 
+   timespans describing the timespan from sunrise to sunset for each
+   individual day. For use in `#for` loops
+* `$LMTyear(data_binding=None, months_ago=0).daylights`: series of 
+   timespans describing the timespan from sunrise to sunset for each
+   individual day. For use in `#for` loops
+
+Examples:
+
+* `$daylight.outTemp.avg`: average temperature while the sun is up
+* ```#for $span in $LMTmonth.daylights
+  <p>$span.dateTime.format("%d"): $span.outTemp.avg</p>
+  #end for```
+  table with day of month and the average temperature while the sun
+  is up on that day
 
 ## Algorithm:
 

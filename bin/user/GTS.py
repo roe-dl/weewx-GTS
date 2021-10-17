@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.6"
+VERSION = "0.7"
 
 # deal with differences between python 2 and python 3
 try:
@@ -149,6 +149,12 @@ except ImportError:
 
     def logerr(msg):
         logmsg(syslog.LOG_ERR, msg)
+
+try:
+    from user.mqtt import UNIT_REDUCTIONS
+    UNIT_REDUCTIONS['degree_C_day'] = 'Kd' # Kelvin days
+except ImportError:
+    pass
 
 # The following functions are similar to that in weeutil/weeutil.py,
 # but honour the timezone tz and do _not_ honour daylight savings time.
@@ -636,30 +642,39 @@ class GTSType(weewx.xtypes.XType):
                     "WHERE dateTime>? AND dateTime<=?"
                     % (obs_type,db_manager.table_name),timespan)
             if _result is None:
-                raise weewx.CannotCalculate("calculate radiation energy: no radiation data in database")
+                raise weewx.CannotCalculate("calculate energy: no %s data in database" % obs_type)
             if _result[0] is not None:
                 if not _result[1] == _result[2]:
-                    raise weewx.CannotCalculate("calculate radiation energy: inconsistent units")
+                    raise weewx.CannotCalculate("calculate energy: inconsistent units")
                 if weewx.debug >= 2:
                     logdbg("radiation integral %s %.1f" % (obs_type,_result[0]))
                 #loginf("radiation integral %.1f" % _result[0])
-                _unit=weewx.units.getStandardUnitType(_result[1],'radiation')
+                _unit,_group = weewx.units.getStandardUnitType(_result[1],obs_type)
                 #loginf("unit %s" % _unit[0])
                 #loginf("unit %s" % _unit[1])
-                if _unit is None or _unit==(None,None) or _unit[1]!='group_radiation':
-                    raise weewx.CannotCalculate("calculate radiation energy: invalid unit group for")
-                if _unit[0]=='watt_per_meter_squared':
+                if not _unit:
+                    raise weewx.CannotCalculate("calculate energy: invalid unit")
+                elif _unit=='watt_per_meter_squared':
                     _unit='watt_hour_per_meter_squared'
-                else:
-                    _unit=None
+                elif _unit=='watt':
+                    _unit = 'watt_hour'
+                elif _unit=='kilowatt':
+                    _unit = 'kilowatt_hour'
+                if not _group:
+                    raise weewx.CannotCalculate("calculate energy: invalid unit group")
+                elif _group=='group_radiation':
+                    _group = 'group_radiation_energy'
+                elif _group=='group_power':
+                    _group = 'group_energy'
                 #loginf("unit %s" % _unit)
             else:
                 _unit='watt_hour_per_meter_squared'
-            return weewx.units.ValueTuple(_result[0],_unit,'group_radiation_energy')
+                _group='group_radiation_energy'
+            return weewx.units.ValueTuple(_result[0],_unit,_group)
         except weedb.OperationalError as e:
-            raise weewx.CannotCalculate("calculate radiation energy: Database OperationalError '%s'" % e)
+            raise weewx.CannotCalculate("calculate energy: Database OperationalError '%s'" % e)
         except (ValueError, TypeError) as e:
-            raise weewx.CannotCalculate("calculate radiation energy: %s" % e)
+            raise weewx.CannotCalculate("calculate energy: %s" % e)
         return None
 
 
@@ -778,7 +793,7 @@ class GTSType(weewx.xtypes.XType):
         # energy_integral can be calculated for group_radiation observation 
         # types like 'radiation' and 'maxSolarRad'
         if aggregate_type=='energy_integral':
-            if obs_type in weewx.units.obs_group_dict and weewx.units.obs_group_dict[obs_type]=='group_radiation':
+            if weewx.units.obs_group_dict.get(obs_type) in ('group_radiation','group_power'):
                 return self.calc_radiation_integral(obs_type,timespan,db_manager)
         
         # growing degree days == Wachstumsgradtage

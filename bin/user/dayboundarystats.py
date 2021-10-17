@@ -15,6 +15,7 @@
   $LMTyesterday(data_binding=None)
   $LMTmonth(data_binding=None, months_ago=0)
   $LMTyear(data_binding=None, years_ago=0)
+  $daylight(data_binding=None, days_ago=0)
   
   "dayboundary" is an offset to UTC in seconds, that gives the 
   time of day that is used as day boundary for the given
@@ -30,7 +31,7 @@
 
 """
 
-VERSION = "0.6"
+VERSION = "0.7"
 
 # deal with differences between python 2 and python 3
 try:
@@ -55,10 +56,10 @@ import datetime
 #import weedb
 import weewx
 import weewx.units
-from weeutil.weeutil import TimeSpan, to_int
+from weeutil.weeutil import TimeSpan, to_int, getDayNightTransitions
 from weewx.cheetahgenerator import SearchList
 from weewx.tags import TimeBinder, TimespanBinder
-
+from weewx.almanac import Almanac
 
 try:
     # Test for new-style weewx logging by trying to import weeutil.logger
@@ -198,20 +199,67 @@ def genDaySpansWithoutDST(start_ts, stop_ts):
     """Generator function that generates start/stop of days
        according to timezone tz"""
     if None in (start_ts, stop_ts): return
-    for time_ts in range(start_ts,stop_ts,86400):
+    for time_ts in range(int(start_ts),int(stop_ts),86400):
         yield TimeSpan(time_ts,time_ts+86400)
     
+def genWeekSpansWithoutDST(start_ts, stop_ts):
+    """Generator function that generates start/stop of days
+       according to timezone tz"""
+    if None in (start_ts, stop_ts): return
+    for time_ts in range(int(start_ts),int(stop_ts),604800):
+        yield TimeSpan(time_ts,time_ts+604800)
+
+def get_sunrise_sunset(ts, latlon, db_lookup, report_time, formatter, converter, **option_dict):
+    # (derived from cheetahgenerator.py, Copyright Tom Keffer)
+    temperature_C = 15.0
+    pressure_mbar = 1010.0
+    # See if we can get more accurate values by looking them up in the
+    # weather database. The database might not exist, so be prepared for
+    # a KeyError exception.
+    try:
+        binding = option_dict.get('skin_dict',{}).get('data_binding', 'wx_binding')
+        archive = db_lookup(binding)
+    except (KeyError, weewx.UnknownBinding, weedb.NoDatabaseError):
+        logerr("daylight")
+        pass
+    else:
+        rec = archive.getRecord(report_time, max_delta=3600)
+        if rec is not None:
+            if 'outTemp' in rec:
+                temperature_C = weewx.units.convert(weewx.units.as_value_tuple(rec, 'outTemp'), "degree_C")[0]
+            if 'barometer' in rec:
+                pressure_mbar = weewx.units.convert(weewx.units.as_value_tuple(rec, 'barometer'), "mbar")[0]
+    try:
+        # get timestamp of sunrise and sunset out of pyephem
+        alm = Almanac(ts.start, 
+                      latlon[0], 
+                      latlon[1], 
+                      altitude=latlon[2],
+                      temperature=temperature_C,
+                      pressure=pressure_mbar,
+                      formatter=formatter,
+                      converter=converter)
+        sunrise = alm.sunrise.raw
+        sunset = alm.sunset.raw
+    except Exception:
+        # If pyephem is not installed or another error occurs, use
+        # the built-in function of WeeWX instead.
+        first,values = getDayNightTransitions(ts.start, ts.stop, latlon[0], latlon[1])
+        sunrise = values[0]
+        sunset = values[1]
+    return TimeSpan(sunrise, sunset)
 
 
 class DayboundaryTimeBinder(TimeBinder):
 
-    def __init__(self, tz_dict, db_lookup, report_time,
+    def __init__(self, tz_dict, latlon, db_lookup, report_time,
                  formatter=weewx.units.Formatter(), converter=weewx.units.Converter(),
                  **option_dict):
         super(DayboundaryTimeBinder,self).__init__(db_lookup, report_time,
                  formatter=formatter,converter=converter,**option_dict)
         self.lmt = tz_dict
         self.lmt_tz = tz_dict.get('timezone')
+        self.latlon = latlon
 
     def _get_timezone(self, offset=None):
         """ get the offset to UTC for the required day boundary """
@@ -232,7 +280,7 @@ class DayboundaryTimeBinder(TimeBinder):
         time_dict,time_tz = self._get_timezone(dayboundary)
         return DayboundaryTimespanBinder(hourSpanTZ(time_tz,
                               self.report_time, hours_ago=hours_ago),
-                              self.lmt, self.db_lookup, data_binding=data_binding,
+                              self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
                               context='day', formatter=self.formatter, converter=self.converter,
                               dayboundary=time_dict,
                               **self.option_dict)
@@ -241,7 +289,7 @@ class DayboundaryTimeBinder(TimeBinder):
         time_dict,time_tz = self._get_timezone(dayboundary)
         return DayboundaryTimespanBinder(daySpanTZ(time_tz, 
                               self.report_time, days_ago=days_ago),
-                              self.lmt, self.db_lookup, data_binding=data_binding,
+                              self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
                               context='day', formatter=self.formatter, converter=self.converter,
                               dayboundary=time_dict,
                               **self.option_dict)
@@ -255,7 +303,7 @@ class DayboundaryTimeBinder(TimeBinder):
         return DayboundaryTimespanBinder(
             weekSpanTZ(self.time_tz,
             self.report_time, week_start, weeks_ago=weeks_ago),
-            self.lmt, self.db_lookup, data_binding=data_binding,
+            self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
             context='week', formatter=self.formatter, converter=self.converter,
             dayboundary=time_dict,
             **self.option_dict)
@@ -265,7 +313,7 @@ class DayboundaryTimeBinder(TimeBinder):
         return DayboundaryTimespanBinder(
             monthSpanTZ(time_tz, 
             self.report_time, months_ago=months_ago),
-            self.lmt, self.db_lookup, data_binding=data_binding,
+            self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
             context='month', formatter=self.formatter, converter=self.converter,
             dayboundary=time_dict,
             **self.option_dict)
@@ -274,7 +322,7 @@ class DayboundaryTimeBinder(TimeBinder):
         time_dict,time_tz = self._get_timezone(dayboundary)
         return DayboundaryTimespanBinder(
             yearSpanTZ(time_tz, self.report_time, years_ago=years_ago),
-            self.lmt, self.db_lookup, data_binding=data_binding,
+            self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
             context='year', formatter=self.formatter, converter=self.converter,
             dayboundary=time_dict,
             **self.option_dict)
@@ -282,7 +330,7 @@ class DayboundaryTimeBinder(TimeBinder):
     def LMThour(self, data_binding=None, hours_ago=0):
         return DayboundaryTimespanBinder(hourSpanTZ(self.lmt_tz,
                               self.report_time, hours_ago=hours_ago),
-                              self.lmt, self.db_lookup, data_binding=data_binding,
+                              self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
                               context='day', formatter=self.formatter, converter=self.converter,
                               LMT=self.lmt,
                               **self.option_dict)
@@ -290,7 +338,7 @@ class DayboundaryTimeBinder(TimeBinder):
     def LMTday(self, data_binding=None, days_ago=0):
         return DayboundaryTimespanBinder(daySpanTZ(self.lmt_tz, 
                               self.report_time, days_ago=days_ago),
-                              self.lmt, self.db_lookup, data_binding=data_binding,
+                              self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
                               context='day', formatter=self.formatter, converter=self.converter,
                               LMT=self.lmt,
                               **self.option_dict)
@@ -303,7 +351,7 @@ class DayboundaryTimeBinder(TimeBinder):
         return DayboundaryTimespanBinder(
             weekSpanTZ(self.lmt_tz,
             self.report_time, week_start, weeks_ago=weeks_ago),
-            self.lmt, self.db_lookup, data_binding=data_binding,
+            self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
             context='week', formatter=self.formatter, converter=self.converter,
             LMT=self.lmt,
             **self.option_dict)
@@ -312,7 +360,7 @@ class DayboundaryTimeBinder(TimeBinder):
         return DayboundaryTimespanBinder(
             monthSpanTZ(self.lmt_tz, 
             self.report_time, months_ago=months_ago),
-            self.lmt, self.db_lookup, data_binding=data_binding,
+            self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
             context='month', formatter=self.formatter, converter=self.converter,
             LMT=self.lmt,
             **self.option_dict)
@@ -347,7 +395,7 @@ class DayboundaryTimeBinder(TimeBinder):
                     if _to<12:
                         dt_to = datetime.datetime.fromtimestamp(ts.start,self.lmt_tz)
                         dt_to = dt_to.replace(month=_to+1)
-                        loginf(dt_to)
+                        #loginf(dt_to)
                         ts = TimeSpan(dt_from.timestamp(),dt_to.timestamp())
                     else:
                         ts = TimeSpan(dt_from.timestamp(),ts.end)
@@ -361,15 +409,73 @@ class DayboundaryTimeBinder(TimeBinder):
                 #logerr("3 %s" % e)
                 pass
         return DayboundaryTimespanBinder(ts,
-            self.lmt, self.db_lookup, data_binding=data_binding,
+            self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
             context='year', formatter=self.formatter, converter=self.converter,
             LMT=self.lmt,
             **self.option_dict)
             
+    def daylight(self, data_binding=None, days_ago=0):
+        # day timespan (from antitransit to antitransit)
+        ts = daySpanTZ(self.lmt_tz, self.report_time, days_ago=days_ago)
+        '''
+        # The default values of temperature and pressure
+        temperature_C = 15.0
+        pressure_mbar = 1010.0
+        # See if we can get more accurate values by looking them up in the
+        # weather database. The database might not exist, so be prepared for
+        # a KeyError exception.
+        # (derived from cheetahgenerator.py, Copyright Tom Keffer)
+        try:
+            binding = self.option_dict.get('skin_dict',{}).get('data_binding', 'wx_binding')
+            archive = self.db_lookup(binding)
+        except (KeyError, weewx.UnknownBinding, weedb.NoDatabaseError):
+            logerr("daylight")
+            pass
+        else:
+            rec = archive.getRecord(self.report_time, max_delta=3600)
+            if rec is not None:
+                if 'outTemp' in rec:
+                    temperature_C = weewx.units.convert(weewx.units.as_value_tuple(rec, 'outTemp'), "degree_C")[0]
+                if 'barometer' in rec:
+                    pressure_mbar = weewx.units.convert(weewx.units.as_value_tuple(rec, 'barometer'), "mbar")[0]
+        try:
+            # get timestamp of sunrise and sunset out of pyephem
+            alm = Almanac(ts.start, 
+                          self.latlon[0], 
+                          self.latlon[1], 
+                          altitude=self.latlon[2],
+                          temperature=temperature_C,
+                          pressure=pressure_mbar,
+                          formatter=self.formatter,
+                          converter=self.converter)
+            sunrise = alm.sunrise.raw
+            sunset = alm.sunset.raw
+        except Exception:
+            # If pyephem is not installed or another error occurs, use
+            # the built-in function of WeeWX instead.
+            first,values = getDayNightTransitions(ts.start, ts.stop, self.latlon[0], self.latlon[1])
+            sunrise = values[0]
+            sunset = values[1]
+        '''
+
+        ts = get_sunrise_sunset(ts,
+                                self.latlon,
+                                self.db_lookup, 
+                                self.report_time, 
+                                self.formatter, 
+                                self.converter,
+                                **self.option_dict)
+
+        return DayboundaryTimespanBinder(ts,
+                              self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
+                              context='day', formatter=self.formatter, converter=self.converter,
+                              LMT=self.lmt,
+                              **self.option_dict)
+
     
 class DayboundaryTimespanBinder(TimespanBinder):
 
-    def __init__(self, timespan, lmt, db_lookup, data_binding=None, context='current',
+    def __init__(self, timespan, lmt, latlon, db_lookup, data_binding=None, context='current',
                  formatter=weewx.units.Formatter(),
                  converter=weewx.units.Converter(), **option_dict):
         super(DayboundaryTimespanBinder,self).__init__(
@@ -377,13 +483,46 @@ class DayboundaryTimespanBinder(TimespanBinder):
                  formatter=formatter, converter=converter, **option_dict)
         self.lmt = lmt
         self.lmt_tz = lmt.get('timezone')
+        self.latlon = latlon
 
     # Iterate over days in the time period:
     def days(self):
         return DayboundaryTimespanBinder._seqGenerator(genDaySpansWithoutDST, self.timespan,
+                                            self.lmt, self.latlon,
                                             self.db_lookup, self.data_binding,
                                             'day', self.formatter, self.converter,
                                             **self.option_dict)
+
+    # Iterate over weeks in the time period:
+    def weeks(self):
+        return DayboundaryTimespanBinder._seqGenerator(genWeekSpansWithoutDST, self.timespan,
+                                            self.lmt, self.latlon,
+                                            self.db_lookup, self.data_binding,
+                                            'week', self.formatter, self.converter,
+                                            **self.option_dict)
+                                            
+    # Iterate over days in the time period and return daylight timespan:
+    def daylights(self):
+        """ generator function that returns DayboundaryTimespanBinder """
+        # Note: span.start//2+span.stop//2 is used instead of 
+        #       (span.start+span.stop)//2 to prevent overflow
+        for span in genDaySpansWithoutDST(self.timespan.start,self.timespan.stop):
+            ts = get_sunrise_sunset(span,
+                                self.latlon,
+                                self.db_lookup, 
+                                span.start//2+span.stop//2, 
+                                self.formatter, 
+                                self.converter,
+                                **self.option_dict)
+            yield DayboundaryTimespanBinder(ts, 
+                                           self.lmt,
+                                           self.latlon, 
+                                           self.db_lookup, 
+                                           self.data_binding,
+                                           'day',
+                                           self.formatter,
+                                           self.converter,
+                                           **self.option_dict)
 
     # Static method used to implement the iteration:
     @staticmethod
@@ -423,8 +562,15 @@ class DayboundaryStats(SearchList):
             trend_dict = {'time_delta': 10800,
                           'time_grace': 300}
 
+        # station altitude
+        try:
+            altitude_m = weewx.units.convert(self.generator.stn_info.altitude_vt,'meter')[0]
+        except (ValueError,TypeError,IndexError):
+            altitude_m = None
+
         stats = DayboundaryTimeBinder(
             {'timeoffset':self.timeoffset,'timezone':self.lmt_tz},
+            (self.generator.stn_info.latitude_f,self.generator.stn_info.longitude_f,altitude_m),
             db_lookup,
             timespan.stop,
             formatter=self.generator.formatter,
