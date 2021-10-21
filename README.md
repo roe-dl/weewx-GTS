@@ -292,6 +292,8 @@ for iteration.
 
 #### Daylight timespan
 
+<img src="daylight-timespan.png" />
+
 * `$daylight(data_binding=None, days_ago=0)`: timespan from sunrise to
    sunset
 * `$LMTmonth(data_binding=None, months_ago=0).daylights`: series of 
