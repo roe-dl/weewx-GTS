@@ -3,6 +3,9 @@ XType-Erweiterung für WeeWX
 * "Grünlandtemperatursumme" (eine Form der Wachstumsgradtage) 
 * Sonnenenergie, ein zusätzlicher 'aggregation_type'
 * 'dayET' und 'ET24' als Gegenstück zu 'dayRain' und 'rain24'
+* Tags für Zeitspannen mit einer anderen Tagesgrenze als Mitternacht
+* `yearGDD` und `seasonGDD`
+* `aggregation_type` `GDD` zur Berechnung der Wachstumsgradtage nach verschiedenen Verfahren
 
 ## Installation:
 
@@ -20,11 +23,13 @@ XType-Erweiterung für WeeWX
    [StdWXCalculate]
        [[Calculations]]
            ...
-           GTS = software,archvie
+           GTS = software,archive
            GTSdate = software, archive
            utcoffsetLMT = software, archive
            dayET = prefer_hardware, archive
            ET24 = prefer_hardware, archive
+           yearGDD = software
+           seasonGDD = software
    ...
    [Engine]
        [[Services]]
@@ -105,6 +110,58 @@ einzutragen:
 ```
 <img src="monthGTS.png" />
 ```
+```
+<img src="yearGTS.png" />
+```
+
+### Wachstumsgradtage
+
+#### Werte anzeigen (CheetahGenerator)
+
+* **yearGDD**: Summe oder Integral der Wachstumsgrade vom Anfang des Jahres bis zum
+  zum aktuellen Moment
+* **seasonGDD**: Summe oder Integral der Wachstumsgrade beginnend beim Datum von `GTSdate`
+  bis zum aktuellen Moment. Vor `GTSdate` ist der Wert undefiniert, ebenso nach dem
+  31. Oktober
+* `aggregation_type` **GDD** (oder **growdeg**): Zur Berechnung der Wachstumsgradtage
+  für andere Größen als `outTemp`. Das kann jeder Temperaturwert sein, zum Beispiel
+  die Gewächshaustemperatur.
+
+#### Diagramme (ImageGenerator)
+
+Im Abschnitt \[\[year_images\]\]:
+
+```
+        [[[yearGDD]]]
+            aggregate_type = avg
+            [[[[yearGDD]]]]
+                label = Growing degree days
+            [[[[seasonGDD]]]]
+                label = Season growing degree days
+```
+
+Dieses Beispiel erzeugt eine Graphikdatei namens "yearGDD.png". Um sie anzuzeigen,
+muß das entsprechende &lt;img&gt; Tag zum Beispiel in index.html.tmpl eingefügt werden:
+
+```
+<img src="yearGDD.png" />
+```
+
+Die Graphik kann auch mit der Grünlandtemperatursumme kombiniert werden:
+
+```
+        [[[yearGTS]]]
+            aggregate_type = avg
+            [[[[GTS]]]]
+                label = Grünlandtemperatursumme
+            [[[[yearGDD]]]]
+                label = Growing degree days
+            [[[[seasonGDD]]]]
+                label = Season growing degree days
+```
+
+Um dieses Diagramm anzuzeigen, ist folgende Eintragung zum Beispiel in index.html.tmpl nötig:
+
 ```
 <img src="yearGTS.png" />
 ```
@@ -211,6 +268,74 @@ Eintragungen vorzunehmen:
 Damit wird für jedes Jahr, für das Daten in der Datenbank verfügbar
 sind, eine Datei erzeugt. 
 
+### Besondere Zeitspannen
+
+In der Meteorologie werden Zeitspannen zuweilen nicht von Mitternacht zu Mitternacht
+der geltenenden Zonenzeit gemessen, sondern es werden andere Zeitpunkte zur Trennung
+der Tage verwendet, zum Beispiel 09:00 Uhr. Die folgenden Tags werden genau so wie
+`$hour`, `$day` usw. benutzt.
+
+#### Beliebiges Offset zu UTC
+
+* `$offsethour(data_binding=None, hours_ago=0, dayboundary=None)`
+* `$offsetday(data_binding=None, days_ago=0, dayboundary=None)`
+* `$offsetyesterday(data_binding=None, dayboundary=None)`
+* `$offsetmonth(data_binding=None, months_ago=0, dayboundary=None)`
+* `$offsetyear(data_binding=None, years_ago=0, dayboundary=None)`
+
+#### Mittlere Ortszeit am Ort der Station
+
+* `$LMThour(data_binding=None, hours_ago=0)`
+* `$LMTday(data_binding=None, days_ago=0)`
+* `$LMTyesterday(data_binding=None)`
+* `$LMTmonth(data_binding=None, months_ago=0)`
+* `$LMTyear(data_binding=None, years_ago=0, month_span=None)`
+
+Die Tagesgrenze für diese Tags ist Mitternacht nach der Mittleren
+Ortszeit am Ort der Station. 
+
+Der optionale Parameter `month_span` ergibt eine Zeitspanne von 
+einigen Monaten innerhalb eines gegebenen Jahres. Zum Beispiel
+ist `$LMTyear(month_span=(6,8)).outTemp.avg` die Durchschnittstemperatur
+des Sommers des aktuellen Jahres. 
+`$LMTyear(years_ago=1,month_span=(12,2)).outTemp.max` ist die
+Maximaltemperatur der letzten Windersaison.
+
+Das Attribut `days` kann verwendet werden, um mittels `$LMTmonth` 
+bzw. `$LMTyear` eine Schleife über die Tage des Monats bzw. Jahres
+zu bilden.
+
+### Zeitspanne `daylight`
+
+<img src="daylight-timespan.png" />
+
+* `$daylight(data_binding=None, days_ago=0)`: Zeitspanne von
+   Sonnenaufgang bis Sonnenuntergang
+* `$LMTmonth(data_binding=None, months_ago=0).daylights`: 
+  Folge von täglichen Zeitspannen, pro Tag jeweils die 
+  Zeit von Sonnenaufgang zu Sonnenuntergang
+* `$LMTyear(data_binding=None, months_ago=0).daylights`: 
+  Folge von täglichen Zeitspannen, pro Tag jeweils die
+  Zeit von Sonnenaufgang zu Sonnenuntergang
+  
+Beispiele:
+
+* Durchschnittstemperatur für die Zeit zwischen Sonnenaufgang und
+  Sonnenuntergang, also während der Zeit des Tageslichtes
+  ```
+  $daylight.outTemp.avg
+  ```
+* Tabelle mit dem Tag des Monats und der zugehörigen 
+  Durchschnittstemperatur für die Zeit des Tageslichts des
+  jeweiligen Tages
+  ```
+  #for $span in $LMTmonth.daylights
+  <p>$span.dateTime.format("%d"): $span.outTemp.avg</p>
+  #end for
+  ```
+
+
+
 ## Algorithmus:
 
 ### Grünlandtemperatursumme (GTS)
@@ -247,6 +372,7 @@ der Sonnenenergie Wh/m^2 bzw. kWh/m^2.
 
 * http://www.groitzsch-wetter.de/HP/green1.html
 * http://www.regionalwetter-sa.de/sa_gruenland.php
+* WeeWX-Beispiel examples/stats.py
 
 ## Verweise (Links):
 
