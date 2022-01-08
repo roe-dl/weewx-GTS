@@ -39,3 +39,5 @@
 * extend aggregation type 'energy_integral' to 'group_power'
 * new timespan $daylight
 * new series $week.daylights $month.daylights $year.daylights
+0.7.1 08jan2022
+* fix bug that caused wrong values after year change

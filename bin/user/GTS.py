@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.7"
+VERSION = "0.7.1"
 
 # deal with differences between python 2 and python 3
 try:
@@ -304,11 +304,15 @@ class GTSType(weewx.xtypes.XType):
             are to be calculated for
             
         """
-
+        
+        # We need the year from Jan 1st on to calculate something.
+        if not db_manager.first_timestamp: return
+        if soy_ts<db_manager.first_timestamp: return
+        
         #logdbg("calculate GTS for the year %s" % time.strftime("%Y",time.localtime(soy_ts)))
         
         # this year or a past year
-        __this_year = -1 <= (soy_ts-startOfYearTZ(None,self.lmt_tz)) <= 1
+        __this_year = (-1 <= (soy_ts-startOfYearTZ(db_manager.last_timestamp,self.lmt_tz)) <= 1) or soy_ts>db_manager.last_timestamp
         
         if __this_year:
             # this year: calculate until today
@@ -518,6 +522,8 @@ class GTSType(weewx.xtypes.XType):
         # same applies if the given timestamp is in future.
         #if _soy_ts<db_manager.first_timestamp or _sod_ts>db_manager.last_timestamp:
         #    raise weewx.CannotCalculate(obs_type)
+        if not db_manager.first_timestamp or not db_manager.last_timestamp:
+            return weewx.units.ValueTuple(None,'degree_C_day','group_degree_day')
             
         # growing degree days == Wachstumsgradtage
         # https://de.wikipedia.org/wiki/Wachstumsgradtag
