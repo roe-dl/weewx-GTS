@@ -31,7 +31,7 @@
 
 """
 
-VERSION = "0.7.1"
+VERSION = "0.7.2"
 
 # deal with differences between python 2 and python 3
 try:

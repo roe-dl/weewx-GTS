@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.7.1"
+VERSION = "0.7.2"
 
 # deal with differences between python 2 and python 3
 try:
@@ -308,8 +308,10 @@ class GTSType(weewx.xtypes.XType):
         # We need the year from Jan 1st on to calculate something.
         if not db_manager.first_timestamp: return
         if soy_ts<db_manager.first_timestamp: return
+        # If the timestamp is far in future, there is nothing to calculate.
+        if soy_ts>time.time(): return
         
-        #logdbg("calculate GTS for the year %s" % time.strftime("%Y",time.localtime(soy_ts)))
+        #loginf("calculate GTS for the year %s" % time.strftime("%Y",time.localtime(soy_ts)))
         
         # this year or a past year
         __this_year = (-1 <= (soy_ts-startOfYearTZ(db_manager.last_timestamp,self.lmt_tz)) <= 1) or soy_ts>db_manager.last_timestamp
@@ -327,7 +329,7 @@ class GTSType(weewx.xtypes.XType):
                     loginf("GTS initialized %s" %
                        datetime.datetime.fromtimestamp(soy_ts,None).strftime("%Y-%m-%d %H:%M:%S %Z"))
                     #except (NameError,TypeError,ValueError,IndexError) as e:
-                except:
+                except Exception:
                     pass
             # get the last values calculated for this year
             __ts=self.last_gts_date
