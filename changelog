@@ -41,3 +41,7 @@
 * new series $week.daylights $month.daylights $year.daylights
 0.7.1 08jan2022
 * fix bug that caused wrong values after year change
+0.7.2 18jan2022
+* no timestamps in future in calc_gts #13
+0.8a1 27jul2022
+* new observation types

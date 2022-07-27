@@ -1,4 +1,4 @@
-# Copyright 2021 Johanna Roedenbeck
+# Copyright 2021, 2022 Johanna Roedenbeck
 # calculating Gruenlandtemperatursumme
 
 """
@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.7.2"
+VERSION = "0.8a1"
 
 # deal with differences between python 2 and python 3
 try:
@@ -113,6 +113,7 @@ import weewx.manager
 import weewx.units
 import weewx.xtypes
 import weewx.wxformulas
+import weewx.uwxutils
 from weeutil.weeutil import TimeSpan
 from weewx.engine import StdService
 from weewx.cheetahgenerator import SearchList
@@ -182,43 +183,6 @@ def dayOfGTSYear(time_ts,soy_ts):
     # time_ts is between Jan 1st and May 31st
     return int((time_ts-soy_ts)//86400)
 
-'''
-def daySpanTZ(tz, time_ts, grace=1, days_ago=0):
-    """ Returns a TimeSpan representing a day in timezone tz
-        that includes the given time."""
-    time_ts -= grace
-    soy_ts = startOfYearTZ(time_ts,tz)
-    sod_ts = startOfDayTZ(time_ts,soy_ts)-days_ago*86400
-    return TimeSpan(sod_ts,sod_ts+86400)
-
-def monthSpanTZ(tz, time_ts, grace=1, months_ago=0):
-    """ get the start of the GTS month time_ts is in """
-    if time_ts is None:
-        # the year of today
-        dt=datetime.datetime.now(tz)
-    else:
-        # convert timestamp to local time according to timezone tz
-        dt=datetime.datetime.fromtimestamp(time_ts,tz)
-    time_ts -= grace
-    # month 1st 00:00:00 according to timezone tz
-    dta=datetime.datetime(dt.year,dt.month,1,0,0,0,0,tz)
-    if dt.month==12:
-        dte=datetime.datetime(dt.year+1,1,1,0,0,0,0,tz)
-    else:
-        dte=datetime.datetime(dt.year,dt.month+1,1,0,0,0,0,tz)
-    # convert back to timestamp
-    return TimeSpan(int(dta.timestamp()),int(dte.timestamp()))
-
-def yearSpanTZ(tz, time_ts, grace=1, years_ago=0):
-    """ Returns a TimeSpan representing a year in timezone tz
-        that includes a given time."""
-    if time_ts is None: time_ts = time.time()
-    time_ts -= grace
-    soya_ts = startOfYearTZ(time_ts,tz)
-    soye_ts = startOfYearTZ(soya_ts+31968000,tz)
-    return TimeSpan(int(soya_ts),int(soye_ts))
-'''
-
 def genDaySpansWithoutDST(start_ts, stop_ts):
     """Generator function that generates start/stop of days
        according to timezone tz"""
@@ -227,13 +191,29 @@ def genDaySpansWithoutDST(start_ts, stop_ts):
         yield TimeSpan(int(time_ts),int(time_ts+86400))
     
 
+# unit g/m^2 and mg/m^2 for 'group_concentration'
+weewx.units.conversionDict.setdefault('microgram_per_meter_cubed',{})
+weewx.units.conversionDict.setdefault('milligram_per_meter_cubed',{})
+weewx.units.conversionDict.setdefault('gram_per_meter_cubed',{})
+weewx.units.conversionDict['gram_per_meter_cubed']['microgram_per_meter_cubed'] = lambda x : x*1000000
+weewx.units.conversionDict['milligram_per_meter_cubed']['microgram_per_meter_cubed'] = lambda x : x*1000
+weewx.units.conversionDict['microgram_per_meter_cubed']['gram_per_meter_cubed'] = lambda x : x*0.000001
+weewx.units.conversionDict['microgram_per_meter_cubed']['milligram_per_meter_cubed'] = lambda x : x*0.001
+weewx.units.conversionDict['milligram_per_meter_cubed']['gram_per_meter_cubed'] = lambda x : x*0.001
+weewx.units.conversionDict['gram_per_meter_cubed']['milligram_per_meter_cubed'] = lambda x : x*1000
+weewx.units.default_unit_format_dict.setdefault('gram_per_meter_cubed',"%.1f")
+weewx.units.default_unit_label_dict.setdefault('gram_per_meter_cubed',u" g/m³")
+weewx.units.default_unit_format_dict.setdefault('milligram_per_meter_cubed',"%.1f")
+weewx.units.default_unit_label_dict.setdefault('milligram_per_meter_cubed',u" mg/m³")
+
+
 class GTSType(weewx.xtypes.XType):
 
     # default growing degree days base and limit temperature
     GDD_BASE_VT = weewx.units.ValueTuple(10.0,'degree_C','group_temperature')
     GDD_LIMIT_VT = weewx.units.ValueTuple(30.0,'degree_C','group_temperature')
 
-    def __init__(self,lat,lon):
+    def __init__(self,lat,lon,svp_config):
 
         # class XType has no constructor
         #super(GTSType,self).__init()
@@ -249,6 +229,9 @@ class GTSType(weewx.xtypes.XType):
             logerr("local time rounded to whole minutes. Use Python>=3.7 to prevent that")
             self.timeoffset = datetime.timedelta(minutes=(lon*240)//60)
             self.lmt_tz = datetime.timezone(self.timeoffset,"LMT")
+            
+        # possible values: vaDavisVp, vaBuck, vaBuckB1, vaBolton, vaTetenNWS, vaTetenMurray, vaTeten
+        self.svp_method = svp_config.get('method','vaBolton')
 
         # attributes to save calculted values
         self.last_gts_date=None # last date GTS is calculated for
@@ -285,6 +268,18 @@ class GTSType(weewx.xtypes.XType):
             weewx.units.conversionDict['kilowatt_hour_per_meter_squared']={}
         weewx.units.conversionDict['watt_hour_per_meter_squared']['kilowatt_hour_per_meter_squared']= lambda x : x / 1000.0
         weewx.units.conversionDict['kilowatt_hour_per_meter_squared']['watt_hour_per_meter_squared']= lambda x : x * 1000.0
+        # saturation vapor pressure
+        weewx.units.obs_group_dict.setdefault('outSVP','group_pressure')
+        # acutal vapor pressure
+        weewx.units.obs_group_dict.setdefault('outVaporP','group_pressure')
+        # absolute humidity
+        weewx.units.obs_group_dict.setdefault('outHumAbs','group_concentration')
+        # mixing ratio
+        for ii in weewx.units.std_groups:
+            weewx.units.std_groups[ii].setdefault('group_mixingratio','gram_per_kilogram')
+        weewx.units.default_unit_format_dict.setdefault('gram_per_kilogram',"%.1f")
+        weewx.units.default_unit_label_dict.setdefault('gram_per_kilogram',u" g/kg")
+        weewx.units.obs_group_dict.setdefault('outMixingRatio','group_mixingratio')
         
         # lock that makes calculation atomic
         self.lock=threading.Lock()
@@ -466,6 +461,46 @@ class GTSType(weewx.xtypes.XType):
             return weewx.units.ValueTuple(datetime.datetime.fromtimestamp(record['dateTime'],self.lmt_tz).strftime("%H:%M:%S"),
                     'unix_epoch','group_time')
         
+        # saturation vapor pressure
+        if obs_type in ['outSVP','outVaporP','outHumAbs','outMixingRatio']:
+            #_result = weewx.xtypes.get_scalar('outTemp',record,db_manager)
+            try:
+                _result = weewx.units.as_value_tuple(record,'outTemp')
+                temp_C = weewx.units.convert(_result,'degree_C')[0]
+                method = option_dict.get('method',self.svp_method)
+                if obs_type=='outSVP':
+                    # saturation vapor pressure
+                    svp = weewx.uwxutils.TWxUtils.SaturationVaporPressure(temp_C,method)
+                else:
+                    _result = weewx.units.as_value_tuple(record,'outHumidity')
+                    hum = weewx.units.convert(_result,'percent')[0]
+                    if obs_type in ['outVaporP','outHumAbs']:
+                        # actual vapor pressure
+                        svp = weewx.uwxutils.TWxUtils.ActualVaporPressure(temp_C,hum,method)
+                        # absolute humidity
+                        if obs_type=='outHumAbs' and svp is not None:
+                            svp = svp / 4.6152 / (temp_C+273.15) * 1e9
+                    else:
+                        # MixingRatio
+                        _result = weewx.units.as_value_tuple(record,'pressure')
+                        p = weewx.units.convert(_result,'hPa')[0]
+                        svp = weewx.uwxutils.TWxUtils.MixingRatio(p,temp_C,hum)
+            except (LookupError,TypeError):
+                svp = None
+            if obs_type=='outHumAbs':
+                __unit = 'microgram_per_meter_cubed'
+                __unitgroup = 'group_concentration'
+            elif obs_type=='outMixingRatio':
+                __unit = 'ppm'
+                __unitgroup = 'group_fraction'
+            else:
+                __unit = 'hPa'
+                __unitgroup = 'group_pressure'
+            __x = weewx.units.ValueTuple(svp,__unit,__unitgroup)
+            if record is None: return __x
+            # see https://github.com/weewx/weewx/issues/781
+            return weewx.units.convertStd(__x,record['usUnits'])
+            
         # This functions handles 'GTS' and 'GTSdate'.
         if obs_type not in ['GTS','GTSdate','dayET','ET24','yearGDD','seasonGDD']:
             raise weewx.UnknownType(obs_type)
@@ -518,6 +553,12 @@ class GTSType(weewx.xtypes.XType):
             
         _soy_ts=startOfYearTZ(_time_ts,self.lmt_tz)
         _sod_ts=startOfDayTZ(_time_ts,_soy_ts) # start of day
+        
+        #try:
+        #    if _soy_ts>1654120800 or _sod_ts>1654120800:
+        #        loginf("_soy_ts %s, _sod_ts %s, _time_ts %s" % (_soy_ts,_sod_ts,_time_ts))
+        #except Exception as e:
+        #    logerr(e)
         
         # If the start of the year in question is before the first
         # record in the database, no value can be calculated. The
@@ -1057,8 +1098,11 @@ class GTSService(StdService):
         __lat=engine.stn_info.latitude_f
         __lon=engine.stn_info.longitude_f
 
+        # saturation vapor pressure calculation method
+        __svp_method = config_dict.get('StdWXCalculate',{}).get('WXXTypes',{}).get('VaporPressure',{})
+        
         # Instantiate an instance of the class GTSType, using the options
-        self.GTSextension=GTSType(__lat,__lon)
+        self.GTSextension=GTSType(__lat,__lon,__svp_method)
         
         # Register the class
         weewx.xtypes.xtypes.append(self.GTSextension)
