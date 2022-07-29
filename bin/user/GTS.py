@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.8a1"
+VERSION = "0.8a2"
 
 # deal with differences between python 2 and python 3
 try:
@@ -280,6 +280,9 @@ class GTSType(weewx.xtypes.XType):
         weewx.units.default_unit_format_dict.setdefault('gram_per_kilogram',"%.1f")
         weewx.units.default_unit_label_dict.setdefault('gram_per_kilogram',u" g/kg")
         weewx.units.obs_group_dict.setdefault('outMixingRatio','group_mixingratio')
+        # equivalent temperature, equivalent potential temperature
+        weewx.units.obs_group_dict.setdefault('outEquiTemp','group_temperature')
+        weewx.units.obs_group_dict.setdefault('outThetaE','group_temperature')
         
         # lock that makes calculation atomic
         self.lock=threading.Lock()
@@ -461,8 +464,14 @@ class GTSType(weewx.xtypes.XType):
             return weewx.units.ValueTuple(datetime.datetime.fromtimestamp(record['dateTime'],self.lmt_tz).strftime("%H:%M:%S"),
                     'unix_epoch','group_time')
         
-        # saturation vapor pressure
-        if obs_type in ['outSVP','outVaporP','outHumAbs','outMixingRatio']:
+        # equivalent temperature, equivalent potential temperature
+        # https://www.dwd.de/DE/service/lexikon/begriffe/A/Aequivalenttemperatur_pdf.pdf?__blob=publicationFile&v=7
+        # https://www.dwd.de/DE/service/lexikon/begriffe/P/Potentielle_Aequivalenttemperatur_pdf.pdf;jsessionid=96ACA333AE2C96198E3B0AC77300EAC9.live21073?__blob=publicationFile&v=5
+                
+        # saturation vapor pressure, actual vapar pressure, mixing ratio,
+        # and absolute humidity
+        if obs_type in ('outSVP','outVaporP','outHumAbs','outMixingRatio',
+                        'outEquiTemp','outThetaE'):
             #_result = weewx.xtypes.get_scalar('outTemp',record,db_manager)
             try:
                 _result = weewx.units.as_value_tuple(record,'outTemp')
@@ -485,14 +494,25 @@ class GTSType(weewx.xtypes.XType):
                         _result = weewx.units.as_value_tuple(record,'pressure')
                         p = weewx.units.convert(_result,'hPa')[0]
                         svp = weewx.uwxutils.TWxUtils.MixingRatio(p,temp_C,hum)
+                        if obs_type!='outMixingRatio':
+                            # equivalent temperature
+                            r = svp*1e-3
+                            L = 2500.78 - 2.325734 * temp_C
+                            svp = temp_C+r*(L/(1.00482+r*4.18674))
+                            if obs_type=='outThetaE':
+                                # equivalent potential temperature
+                                svp = (svp+273.15)*((1000/p)**(287.05/1004.82))-273.15
             except (LookupError,TypeError):
                 svp = None
             if obs_type=='outHumAbs':
                 __unit = 'microgram_per_meter_cubed'
                 __unitgroup = 'group_concentration'
             elif obs_type=='outMixingRatio':
-                __unit = 'ppm'
-                __unitgroup = 'group_fraction'
+                __unit = 'gram_per_kilogram'
+                __unitgroup = 'group_mixingratio'
+            elif obs_type in ('outEquiTemp','outThetaE'):
+                __unit = 'degree_C'
+                __unitgroup = 'group_temperature'
             else:
                 __unit = 'hPa'
                 __unitgroup = 'group_pressure'

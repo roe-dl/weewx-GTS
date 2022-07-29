@@ -45,3 +45,7 @@
 * no timestamps in future in calc_gts #13
 0.8a1 27jul2022
 * new observation types
+0.8a2 29jul2022
+* more new observation types
+* bug fixes
+* docu

@@ -251,6 +251,27 @@ to your `skin.conf`:
 
 This creates a file for every year that data is available for.
 
+### Special derived meteorological readings
+
+WeeWX already includes the calculation of some special derived 
+meteorological readings, but they are used internally, only. This
+extension makes them available for use in section `[StdWXCalculate]`.
+
+Please note: There comes an example extension with WeeWX, that 
+calculates a value called "vapor pressure", but it is really
+saturation vapor pressure. The example uses another algorithm
+than WeeWX internally.
+
+Caution: The calculation of these values is alpha code. It needs
+to be evaluated.
+
+* `outSVP`: saturation vapor pressure
+* `outVaporP`: actual vapor pressure
+* `outMixingRatio`: mixing ratio
+* `outHumAbs`: absolute humidity
+* `outEquiTemp`: equivalent temperature
+* `outThetaE`: equivalent potential temperature
+
 ### Special time spans
 
 Sometimes day span used in meteorology are not from midnight to midnight
