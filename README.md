@@ -158,12 +158,57 @@ into index.html.tmpl:
 
 #### Display values (CheetahGenerator)
 
-* **dayET**: the sum of ET from the beginning of the archive day on, like dayRain does for rain
-* **ET24**: the sum of ET over the last 24 hours, like rain24 does for rain
+* `dayET`: the sum of ET from the beginning of the archive day on, like dayRain does for rain
+* `ET24`: the sum of ET over the last 24 hours, like rain24 does for rain
 
 #### Diagrams (ImageGenerator)
 
-'dayET' and 'ET24' are not used in plots.
+`dayET` and `ET24` are not used in plots.
+
+### Special derived meteorological readings
+
+WeeWX already includes the calculation of some special derived 
+meteorological readings, but they are used internally, only. This
+extension makes them available for use in section `[StdWXCalculate]`
+and in tags.
+
+**Please note**: WeeWX comes with an example extension, that 
+calculates a value called "vapor pressure", but it is in fact
+saturation vapor pressure. The example uses another algorithm
+than WeeWX internally.
+
+**Caution**: The calculation of these values is alpha code. It needs
+to be evaluated.
+
+#### Display values (CheetahGenerator)
+
+* `outSVP`: saturation vapor pressure
+* `outVaporP`: actual vapor pressure
+* `outMixingRatio`: mixing ratio
+* `outHumAbs`: absolute humidity
+* `outEquiTemp`: equivalent temperature
+* `outThetaE`: equivalent potential temperature
+
+#### Diagrams (Belchertown skin)
+
+To show diagrams of these readings there is no need to store them
+in database. They will be calculated "on the fly" by the XTYPE system
+of WeeWX.
+
+Example: Display both the relative and absolute humidity in one diagram
+
+```
+    [[humidity]]
+        title = "Humidity"
+        [[[outHumidity]]]
+            name = "relative
+        [[[outHumAbs]]]
+            name = "absolute"
+            yAxis = 1
+            unit = gram_per_meter_cubed
+            [[[[numberFormat]]]]
+                decimals = 1
+```
 
 ### Radiation energy
 
@@ -250,27 +295,6 @@ to your `skin.conf`:
 ```
 
 This creates a file for every year that data is available for.
-
-### Special derived meteorological readings
-
-WeeWX already includes the calculation of some special derived 
-meteorological readings, but they are used internally, only. This
-extension makes them available for use in section `[StdWXCalculate]`.
-
-Please note: There comes an example extension with WeeWX, that 
-calculates a value called "vapor pressure", but it is really
-saturation vapor pressure. The example uses another algorithm
-than WeeWX internally.
-
-Caution: The calculation of these values is alpha code. It needs
-to be evaluated.
-
-* `outSVP`: saturation vapor pressure
-* `outVaporP`: actual vapor pressure
-* `outMixingRatio`: mixing ratio
-* `outHumAbs`: absolute humidity
-* `outEquiTemp`: equivalent temperature
-* `outThetaE`: equivalent potential temperature
 
 ### Special time spans
 
