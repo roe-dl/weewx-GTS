@@ -204,7 +204,7 @@ Example: absolute humidity
             unit = gram_per_meter_cubed
             [[[[outHumAbs]]]]
 ```
-<img src="weekhumabs.png" />
+<img src="dayhumabs.png" />
 
 #### Diagrams (Belchertown skin)
 
