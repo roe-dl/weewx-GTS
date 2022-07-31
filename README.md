@@ -204,6 +204,7 @@ Example: absolute humidity
             unit = gram_per_meter_cubed
             [[[[outHumAbs]]]]
 ```
+<img src="weekhumabs.png" />
 
 #### Diagrams (Belchertown skin)
 
@@ -221,6 +222,8 @@ Example: Display both the relative and absolute humidity in one diagram
             [[[[numberFormat]]]]
                 decimals = 1
 ```
+
+<img src="luftfeuchtigkeit.png" />
 
 ### Radiation energy
 
