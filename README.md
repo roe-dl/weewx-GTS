@@ -4,6 +4,8 @@ Deutsche Version dieses Textes [hier](https://github.com/roe-dl/weewx-GTS/blob/m
 XType extension for WeeWX to provide 
 * "Grünlandtemperatursumme" (a kind of growing degree days) 
 * observation types 'dayET' and 'ET24' as the opposite to 'dayRain' and 'rain24'
+* observation types for equivalent (potential) temperature, mixing ratio,
+  absolute humidity, and (saturation) vapor power
 * additional aggregation type for 'radiation' to calculate the total energy received during the aggregation interval
 * tags for day boundaries other than midnight local timezone time
 * observation types 'yearGDD' and 'seasonGDD'
@@ -189,11 +191,21 @@ to be evaluated.
 * `outEquiTemp`: equivalent temperature
 * `outThetaE`: equivalent potential temperature
 
-#### Diagrams (Belchertown skin)
+#### Diagrams (ImageGenerator)
 
 To show diagrams of these readings there is no need to store them
 in database. They will be calculated "on the fly" by the XTYPE system
 of WeeWX.
+
+Example: absolute humidity
+
+```
+        [[[dayhumabs]]]
+            unit = gram_per_meter_cubed
+            [[[[outHumAbs]]]]
+```
+
+#### Diagrams (Belchertown skin)
 
 Example: Display both the relative and absolute humidity in one diagram
 

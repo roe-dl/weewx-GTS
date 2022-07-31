@@ -848,6 +848,69 @@ class GTSType(weewx.xtypes.XType):
                                                obs_type, 'GDD')
         # Return as a value tuple
         return weewx.units.ValueTuple(value, t, g)
+    
+    
+    def calc_derived(self, obs_type, timespan, aggregate_type, db_manager, **option_dict):
+        """ calculate aggreation of derived observation types """
+        try:
+            if aggregate_type in ('min','mintime'):
+                val = 1e10
+            elif aggregate_type in ('max','maxtime'):
+                val = -1e10
+            else:
+                val = 0.0
+            n = 0
+            valtime = None
+            _x = (None,None,None)
+            for _result in db_manager.genSql(
+                    "SELECT `dateTime`,`usUnits`,"
+                    "`outTemp`,`outHumidity`,`pressure`"
+                    "from %s WHERE dateTime>? AND dateTime<=?"
+                    "ORDER BY `dateTime`"
+                    % db_manager.table_name,timespan):
+                if _result is None:
+                    raise weewx.CannotCalculate("%s.%s: no data in database" % (obs_type,aggregate_type))
+                _rec = {
+                    'dateTime':_result[0],
+                    'usUnits':_result[1],
+                    'outTemp':_result[2],
+                    'outHumidity':_result[3],
+                    'pressure':_result[4]}
+                _x = self.get_scalar(obs_type, _rec, db_manager, **option_dict)
+                if _x[0] is not None: 
+                    n += 1
+                    if aggregate_type=='count':
+                        pass
+                    if aggregate_type=='avg':
+                        val += _x[0]
+                    elif aggregate_type in ('min','mintime'):
+                        if _x[0]<val: 
+                            val = _x[0]
+                            valtime = _result[0]
+                    elif aggregate_type in ('max','maxtime'):
+                        if _x[0]>val: 
+                            val = _x[0]
+                            valtime = _result[0]
+                    elif aggregate_type=='last':
+                        val = _x[0]
+                        valtime = _result[0]
+                    else:
+                        raise weewx.UnknownType("%s.%s: unknown aggregation type" % (obs_type,aggregate_type))
+            if aggregate_type=='avg': 
+                if n>0:
+                    val /= n
+                else:
+                    val = None
+            if 'time' in aggregate_type:
+                return weewx.units.ValueTuple(valtime,'unix_epoch','group_time')
+            if aggregate_type=='count':
+                return weewx.units.ValueTuple(n,'count','group_count')
+            return weewx.units.ValueTuple(val,_x[1],_x[2])
+        except weedb.OperationalError as e:
+            raise weewx.CannotCalculate("%s.%s: Database OperationalError '%s'" % (obs_type,aggregate_type,e))
+        except (ValueError, TypeError, ArithmeticError, LookupError) as e:
+            raise weewx.CannotCalculate("%s.%s: %s" % (obs_type,aggregate_type,e))
+        return None
         
         
     def get_aggregate(self, obs_type, timespan, aggregate_type, db_manager, **option_dict):
@@ -954,6 +1017,11 @@ class GTSType(weewx.xtypes.XType):
             if aggregate_type.lower()=='last':
                 return self.get_scalar(obs_type,{'dateTime':timespan.stop},db_manager,**option_dict)
             raise weewx.UnknownAggregation("%s undefinded aggregation %s" % (obs_type,aggregation_type))
+
+        # derived meteorological readings
+        if obs_type in ('outSVP','outVaporP','outMixingRatio',
+                        'outHumAbs','outEquiTemp','outThetaE'):
+            return self.calc_derived(obs_type,timespan,aggregate_type,db_manager)
 
         # This function handles 'GTS' and 'GTSdate'.
         if obs_type!='GTS' and obs_type!='GTSdate':
