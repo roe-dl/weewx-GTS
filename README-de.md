@@ -3,6 +3,8 @@ XType-Erweiterung für WeeWX
 * "Grünlandtemperatursumme" (eine Form der Wachstumsgradtage) 
 * Sonnenenergie, ein zusätzlicher 'aggregation_type'
 * 'dayET' und 'ET24' als Gegenstück zu 'dayRain' und 'rain24'
+* (potentielle) Äquivalenttemperatur, Mischungsverhältnis, 
+  absolute Luftfeuchtigkeit, (Sättigungs)Dampfdruck
 * Tags für Zeitspannen mit einer anderen Tagesgrenze als Mitternacht
 * `yearGDD` und `seasonGDD`
 * `aggregation_type` `GDD` zur Berechnung der Wachstumsgradtage nach verschiedenen Verfahren
@@ -178,6 +180,68 @@ Um dieses Diagramm anzuzeigen, ist folgende Eintragung zum Beispiel in index.htm
 #### Diagramme (ImageGenerator)
 
 'dayET' and 'ET24' werden nicht in Diagrammen benutzt.
+
+### Spezielle abgleitete meteorologische Größen
+
+WeeWX enthält bereits Berechnungsfunktionen für diverse abgeleitete
+meteorologische Größen, die aber nur intern verwendet werden. Mit
+dieser Erweiterung werden sie für die Berechnung im Abschnitt
+`[StdWXCalculate]` und zur Nutzung auf Webseiten und in Diagrammen
+bereitgestellt.
+
+Beachte: WeeWX enthält ein Beispiel, wie Erweiterungen programmiert
+werden, das einen "Dampfdruck" (vapor pressure) bezeichneten
+Wert liefert. In Wirklichkeit wird dort aber der Sättigungsdampfdruck
+berechnet. Und die Formel ist auch eine andere als WeeWX sie intern
+benutzt.
+
+Warnung: Dieser Teil ist noch im Alpha-Status.
+
+#### Werte anzeigen (CheetahGenerator)
+
+* `outSVP`: Sättigungsdampfdruck
+* `outVaporP`: aktueller Dampfdruck
+* `outMxingRatio`: Mischungsverhältnis
+* `outHumAbs`: absolute Luftfeuchtigkeit
+* `outEquiTemp`: Äquivalenttemperatur
+* `outThetaE`: potentielle Äquivalenttemperatur
+
+#### Diagramme (ImageGenerator)
+
+Um Diagramme mit diesen Werten darzustellen, ist es nicht nötig, sie
+in der Datenbank zu speichern. Nur die Ausgangswerte Außentemperatur,
+relative Luftfeuchtigkeit und Stationsluftdruck müssen vorhanden
+sein. Dann erfolgt die Berechnung live bei der Darstellung des
+Diagramms.
+
+Beispiel: absolute Luftfeuchtigkeit
+
+```
+        [[[dayhumabs]]]
+            unit = gram_per_meter_cubed
+            [[[[outHumAbs]]]]
+```
+
+<img src="dayhumabs.png" />
+
+#### Diagramme (Belchertown skin)
+
+Beispiel: relative und absolute Luftfeuchtigkeit in einem Diagramm:
+
+```
+    [[humidity]]
+        title = "Humidity"
+        [[[outHumidity]]]
+            name = "relative
+        [[[outHumAbs]]]
+            name = "absolute"
+            yAxis = 1
+            unit = gram_per_meter_cubed
+            [[[[numberFormat]]]]
+                decimals = 1
+```
+
+<img src="luftfeuchtigkeit.png" />
 
 ### Sonnenenergie
 
