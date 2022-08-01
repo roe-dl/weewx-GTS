@@ -27,13 +27,19 @@ XType extension for WeeWX to provide
    [StdWXCalculate]
        [[Calculations]]
            ...
-           GTS = software,archvie
+           GTS = software,archive
            GTSdate = software, archive
            utcoffsetLMT = software, archive
            dayET = prefer_hardware, archive
            ET24 = prefer_hardware, archive
            yearGDD = software
            seasonGDD = software
+           outVaporP = software,loop
+           outSVP    = software,loop
+           outMixingRatio = software,loop
+           outEquiTemp = software,loop
+           outThetaE = software,loop
+           outHumAbs = software,loop
    ...
    [Engine]
        [[Services]]
