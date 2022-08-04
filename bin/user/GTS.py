@@ -84,7 +84,7 @@
         
 """
 
-VERSION = "0.8a2"
+VERSION = "0.8a3"
 
 # deal with differences between python 2 and python 3
 try:
@@ -712,13 +712,25 @@ class GTSType(weewx.xtypes.XType):
                     % (obs_type,db_manager.table_name),timespan)
             if _result is None:
                 raise weewx.CannotCalculate("calculate energy: no %s data in database" % obs_type)
+            # get the unit system
             if _result[0] is not None:
+                # There are records within the time span, so there is a
+                # result
                 if not _result[1] == _result[2]:
                     raise weewx.CannotCalculate("calculate energy: inconsistent units")
                 if weewx.debug >= 2:
                     logdbg("radiation integral %s %.1f" % (obs_type,_result[0]))
                 #loginf("radiation integral %.1f" % _result[0])
-                _unit,_group = weewx.units.getStandardUnitType(_result[1],obs_type)
+                _usUnits = _result[1]
+            else:
+                # There are no records within the time span --> try to
+                # determine the unit system otherwise.
+                _usUnits = db_manager.std_unit_system
+            # find the unit and unit group for the integrated value
+            if _usUnits is not None:
+                # The unit system could be determined, so get the actual
+                # unit and add 'hour' to it.
+                _unit,_group = weewx.units.getStandardUnitType(_usUnits,obs_type)
                 #loginf("unit %s" % _unit[0])
                 #loginf("unit %s" % _unit[1])
                 if not _unit:
@@ -729,6 +741,7 @@ class GTSType(weewx.xtypes.XType):
                     _unit = 'watt_hour'
                 elif _unit=='kilowatt':
                     _unit = 'kilowatt_hour'
+                # find the unit group for the integrated value
                 if not _group:
                     raise weewx.CannotCalculate("calculate energy: invalid unit group")
                 elif _group=='group_radiation':

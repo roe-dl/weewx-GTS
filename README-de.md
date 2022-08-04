@@ -181,7 +181,7 @@ Um dieses Diagramm anzuzeigen, ist folgende Eintragung zum Beispiel in index.htm
 
 'dayET' and 'ET24' werden nicht in Diagrammen benutzt.
 
-### Spezielle abgleitete meteorologische Größen
+### Spezielle abgeleitete meteorologische Größen
 
 WeeWX enthält bereits Berechnungsfunktionen für diverse abgeleitete
 meteorologische Größen, die aber nur intern verwendet werden. Mit

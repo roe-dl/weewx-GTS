@@ -50,3 +50,6 @@
 * bug fixes
 * docu
 * calculate aggregation for the new observation types
+0.8a3 04aug2022
+* option "horizon" and "use_center" for $daylight and .daylights
+* fix bug in "energy_integral"

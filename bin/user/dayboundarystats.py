@@ -15,7 +15,7 @@
   $LMTyesterday(data_binding=None)
   $LMTmonth(data_binding=None, months_ago=0)
   $LMTyear(data_binding=None, years_ago=0)
-  $daylight(data_binding=None, days_ago=0)
+  $daylight(data_binding=None, days_ago=0, horizon=None, use_center=None)
   
   "dayboundary" is an offset to UTC in seconds, that gives the 
   time of day that is used as day boundary for the given
@@ -31,7 +31,7 @@
 
 """
 
-VERSION = "0.7.2"
+VERSION = "0.8a3"
 
 # deal with differences between python 2 and python 3
 try:
@@ -209,7 +209,7 @@ def genWeekSpansWithoutDST(start_ts, stop_ts):
     for time_ts in range(int(start_ts),int(stop_ts),604800):
         yield TimeSpan(time_ts,time_ts+604800)
 
-def get_sunrise_sunset(ts, latlon, db_lookup, report_time, formatter, converter, **option_dict):
+def get_sunrise_sunset(ts, latlon, horizon, use_center, db_lookup, report_time, formatter, converter, **option_dict):
     # (derived from cheetahgenerator.py, Copyright Tom Keffer)
     temperature_C = 15.0
     pressure_mbar = 1010.0
@@ -237,10 +237,11 @@ def get_sunrise_sunset(ts, latlon, db_lookup, report_time, formatter, converter,
                       altitude=latlon[2],
                       temperature=temperature_C,
                       pressure=pressure_mbar,
+                      horizon=horizon,
                       formatter=formatter,
                       converter=converter)
-        sunrise = alm.sunrise.raw
-        sunset = alm.sunset.raw
+        sunrise = alm.sun(use_center=use_center).rise.raw
+        sunset = alm.sun(use_center=use_center).set.raw
     except Exception:
         # If pyephem is not installed or another error occurs, use
         # the built-in function of WeeWX instead.
@@ -414,7 +415,7 @@ class DayboundaryTimeBinder(TimeBinder):
             LMT=self.lmt,
             **self.option_dict)
             
-    def daylight(self, data_binding=None, days_ago=0):
+    def daylight(self, data_binding=None, days_ago=0, horizon=None, use_center=False):
         # day timespan (from antitransit to antitransit)
         ts = daySpanTZ(self.lmt_tz, self.report_time, days_ago=days_ago)
         '''
@@ -460,6 +461,8 @@ class DayboundaryTimeBinder(TimeBinder):
 
         ts = get_sunrise_sunset(ts,
                                 self.latlon,
+                                horizon,
+                                use_center,
                                 self.db_lookup, 
                                 self.report_time, 
                                 self.formatter, 
@@ -502,15 +505,17 @@ class DayboundaryTimespanBinder(TimespanBinder):
                                             **self.option_dict)
                                             
     # Iterate over days in the time period and return daylight timespan:
-    def daylights(self):
+    def daylights(self, horizon=None, use_center=False):
         """ generator function that returns DayboundaryTimespanBinder """
         # Note: span.start//2+span.stop//2 is used instead of 
         #       (span.start+span.stop)//2 to prevent overflow
         for span in genDaySpansWithoutDST(self.timespan.start,self.timespan.stop):
             ts = get_sunrise_sunset(span,
                                 self.latlon,
+                                horizon,
+                                use_center,
                                 self.db_lookup, 
-                                span.start//2+span.stop//2, 
+                                int(span.start)//2+int(span.stop)//2, 
                                 self.formatter, 
                                 self.converter,
                                 **self.option_dict)

@@ -360,14 +360,24 @@ for iteration.
 
 <img src="daylight-timespan.png" />
 
-* `$daylight(data_binding=None, days_ago=0)`: timespan from sunrise to
-   sunset
-* `$LMTmonth(data_binding=None, months_ago=0).daylights`: series of 
+* `$daylight(data_binding=None, days_ago=0, horizon=None, use_center=False)`: 
+   timespan from sunrise to sunset
+* `$LMTweek(data_binding=None, months_ago=0).daylights(horizon=None, use_center=False)`: 
+   series of 
    timespans describing the timespan from sunrise to sunset for each
    individual day. For use in `#for` loops
-* `$LMTyear(data_binding=None, months_ago=0).daylights`: series of 
+* `$LMTmonth(data_binding=None, months_ago=0).daylights(horizon=None, use_center=False)`: 
+   series of 
    timespans describing the timespan from sunrise to sunset for each
    individual day. For use in `#for` loops
+* `$LMTyear(data_binding=None, months_ago=0).daylights(horizon=None, use_center=False)`: 
+   series of 
+   timespans describing the timespan from sunrise to sunset for each
+   individual day. For use in `#for` loops
+
+For the options `horizon` and `use_center` see
+[WeeWX customization guide](https://weewx.com/docs/customizing.htm#Heavenly_bodies).
+If omitted, defaults are used.
 
 Examples:
 
