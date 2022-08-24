@@ -877,8 +877,8 @@ class GTSType(weewx.xtypes.XType):
             _x = (None,None,None)
             for _result in db_manager.genSql(
                     "SELECT `dateTime`,`usUnits`,"
-                    "`outTemp`,`outHumidity`,`pressure`"
-                    "from %s WHERE dateTime>? AND dateTime<=?"
+                    "`outTemp`,`outHumidity`,`pressure` "
+                    "from %s WHERE dateTime>? AND dateTime<=? "
                     "ORDER BY `dateTime`"
                     % db_manager.table_name,timespan):
                 if _result is None:
