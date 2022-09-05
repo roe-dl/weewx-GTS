@@ -373,15 +373,35 @@ zu bilden.
 
 <img src="daylight-timespan.png" />
 
-* `$daylight(data_binding=None, days_ago=0)`: Zeitspanne von
+* `$daylight(day=None, data_binding=None, days_ago=0, horizon=None, use_center=False)`: 
+
+   Zeitspanne von
    Sonnenaufgang bis Sonnenuntergang
-* `$LMTmonth(data_binding=None, months_ago=0).daylights`: 
+
+   Wenn `day` None ist (das ist der Standard), dann ist es die Zeitspanne
+   von Sonnenaufgang bis Sonnenuntergang am gegenwärtigen Tag oder an
+   dem Tag, der `day_ago` Tage zurückliegt.
+
+   Sonst kann `day` ein Wert der Klasse TimespanBinder, eine Zeitspanne
+   oder ein Zeitpunkt sein. `$daylight` ist dann die Zeitspanne 
+   von Sonnenaufgang bis Sonnenuntergang an dem Tag, der durch
+   die Zeitspanne oder den Zeitpunkt definiert wird.
+
+* `$LMTmonth(data_binding=None, months_ago=0).daylights(horizon=None, use_center=False)`: 
+
   Folge von täglichen Zeitspannen, pro Tag jeweils die 
   Zeit von Sonnenaufgang zu Sonnenuntergang
-* `$LMTyear(data_binding=None, months_ago=0).daylights`: 
+
+* `$LMTyear(data_binding=None, months_ago=0).daylights(horizon=None, use_center=False)`: 
+
   Folge von täglichen Zeitspannen, pro Tag jeweils die
   Zeit von Sonnenaufgang zu Sonnenuntergang
-  
+
+Die Optionen `horizon` und `use_center` entsprechend denen, die im
+[WeeWX Benutzerhandbuch](https://weewx.com/docs/customizing.htm#Heavenly_bodies)  
+für `$almanac` beschrieben sind. Sind sie nicht angegeben, werden
+Standardwerte benutzt.
+
 Beispiele:
 
 * Durchschnittstemperatur für die Zeit zwischen Sonnenaufgang und
@@ -397,7 +417,27 @@ Beispiele:
   <p>$span.dateTime.format("%d"): $span.outTemp.avg</p>
   #end for
   ```
-
+* Regen am Tag und in der Nacht
+  ```
+  #from weewx.units import ValueTuple, ValueHelper
+  <table>
+  <tr>
+  <th>Day</th>
+  <th>Day rain</th>
+  <th>Night rain</th>
+  </tr>
+  #for $day in $week.days
+  #set $light=$daylight(day=$day)
+  #set $nightrain=$day.rain.sum.raw-$light.rain.sum.raw
+  #set $nightrain_vh=ValueHelper(ValueTuple($nightrain,$unit.unit_type.rain,'group_rain'),formatter=$station.formatter)
+  <tr>
+  <td>$day.start.format("%d.%m.%Y")</td>
+  <td>$light.rain.sum</td>
+  <td>$nightrain_vh</td>
+  </tr>
+  #end for
+  </table>
+  ```
 
 
 ## Algorithmus:

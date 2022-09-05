@@ -53,3 +53,5 @@
 0.8a3 04aug2022
 * option "horizon" and "use_center" for $daylight and .daylights
 * fix bug in "energy_integral"
+0.8a4 05sep2022
+* option "day" for $daylight to simplify for loops

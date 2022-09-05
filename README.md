@@ -360,9 +360,17 @@ for iteration.
 
 <img src="daylight-timespan.png" />
 
-* `$daylight(data_binding=None, days_ago=0, horizon=None, use_center=False)`
+* `$daylight(day=None, data_binding=None, days_ago=0, horizon=None, use_center=False)`
 
    timespan from sunrise to sunset
+
+   If `day` is None (the default), it is the timespan from sunrise to
+   sunset of the current day or the day `days_ago` days ago.
+
+   Otherwise `day` can be a class TimespanBinder, a timespan or a
+   timestamp. `$daylight` is then the timespan between sunrise and sunset
+   of the day the specified timespan or timestamp is in. This is useful
+   in `#for` loops over days.
 
 * `$LMTweek(data_binding=None, months_ago=0).daylights(horizon=None, use_center=False)`
 
@@ -398,6 +406,27 @@ Examples:
   #for $span in $LMTmonth.daylights
   <p>$span.dateTime.format("%d"): $span.outTemp.avg</p>
   #end for
+  ```
+* rain during day and night of the days of the current week
+  ```
+  #from weewx.units import ValueTuple, ValueHelper
+  <table>
+  <tr>
+  <th>Day</th>
+  <th>Day rain</th>
+  <th>Night rain</th>
+  </tr>
+  #for $day in $week.days
+  #set $light=$daylight(day=$day)
+  #set $nightrain=$day.rain.sum.raw-$light.rain.sum.raw
+  #set $nightrain_vh=ValueHelper(ValueTuple($nightrain,$unit.unit_type.rain,'group_rain'),formatter=$station.formatter)
+  <tr>
+  <td>$day.start.format("%Y-%m-%d")</td>
+  <td>$light.rain.sum</td>
+  <td>$nightrain_vh</td>
+  </tr>
+  #end for
+  </table>
   ```
 
 ## Algorithm:

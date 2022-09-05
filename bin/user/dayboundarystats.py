@@ -1,4 +1,4 @@
-# Copyright 2021 Johanna Roedenbeck
+# Copyright 2021, 2022 Johanna Roedenbeck
 # timespans with different day boundaries
 
 """
@@ -15,7 +15,7 @@
   $LMTyesterday(data_binding=None)
   $LMTmonth(data_binding=None, months_ago=0)
   $LMTyear(data_binding=None, years_ago=0)
-  $daylight(data_binding=None, days_ago=0, horizon=None, use_center=None)
+  $daylight(day=None, data_binding=None, days_ago=0, horizon=None, use_center=None)
   
   "dayboundary" is an offset to UTC in seconds, that gives the 
   time of day that is used as day boundary for the given
@@ -31,7 +31,7 @@
 
 """
 
-VERSION = "0.8a3"
+VERSION = "0.8a4"
 
 # deal with differences between python 2 and python 3
 try:
@@ -415,49 +415,22 @@ class DayboundaryTimeBinder(TimeBinder):
             LMT=self.lmt,
             **self.option_dict)
             
-    def daylight(self, data_binding=None, days_ago=0, horizon=None, use_center=False):
-        # day timespan (from antitransit to antitransit)
-        ts = daySpanTZ(self.lmt_tz, self.report_time, days_ago=days_ago)
-        '''
-        # The default values of temperature and pressure
-        temperature_C = 15.0
-        pressure_mbar = 1010.0
-        # See if we can get more accurate values by looking them up in the
-        # weather database. The database might not exist, so be prepared for
-        # a KeyError exception.
-        # (derived from cheetahgenerator.py, Copyright Tom Keffer)
-        try:
-            binding = self.option_dict.get('skin_dict',{}).get('data_binding', 'wx_binding')
-            archive = self.db_lookup(binding)
-        except (KeyError, weewx.UnknownBinding, weedb.NoDatabaseError):
-            logerr("daylight")
-            pass
+    def daylight(self, day=None, data_binding=None, days_ago=0, horizon=None, use_center=False):
+        dbin = data_binding
+        if day:
+            # timestamp or timespan
+            try:
+                ts = day.timespan
+                self.db_lookup = day.db_lookup
+                dbin = day.data_binding if day.data_binding else data_binding
+            except LookupError:
+                try:
+                    ts = (to_int(day[0]),to_int(day[1]))
+                except LookupError:
+                    ts = daySpanTZ(self.lmt_tz, day, days_ago=days_ago)
         else:
-            rec = archive.getRecord(self.report_time, max_delta=3600)
-            if rec is not None:
-                if 'outTemp' in rec:
-                    temperature_C = weewx.units.convert(weewx.units.as_value_tuple(rec, 'outTemp'), "degree_C")[0]
-                if 'barometer' in rec:
-                    pressure_mbar = weewx.units.convert(weewx.units.as_value_tuple(rec, 'barometer'), "mbar")[0]
-        try:
-            # get timestamp of sunrise and sunset out of pyephem
-            alm = Almanac(ts.start, 
-                          self.latlon[0], 
-                          self.latlon[1], 
-                          altitude=self.latlon[2],
-                          temperature=temperature_C,
-                          pressure=pressure_mbar,
-                          formatter=self.formatter,
-                          converter=self.converter)
-            sunrise = alm.sunrise.raw
-            sunset = alm.sunset.raw
-        except Exception:
-            # If pyephem is not installed or another error occurs, use
-            # the built-in function of WeeWX instead.
-            first,values = getDayNightTransitions(ts.start, ts.stop, self.latlon[0], self.latlon[1])
-            sunrise = values[0]
-            sunset = values[1]
-        '''
+            # day timespan (from antitransit to antitransit)
+            ts = daySpanTZ(self.lmt_tz, self.report_time, days_ago=days_ago)
 
         ts = get_sunrise_sunset(ts,
                                 self.latlon,
@@ -470,7 +443,7 @@ class DayboundaryTimeBinder(TimeBinder):
                                 **self.option_dict)
 
         return DayboundaryTimespanBinder(ts,
-                              self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
+                              self.lmt, self.latlon, self.db_lookup, data_binding=dbin,
                               context='day', formatter=self.formatter, converter=self.converter,
                               LMT=self.lmt,
                               **self.option_dict)
