@@ -1,5 +1,22 @@
-# Copyright 2021, 2022 Johanna Roedenbeck
 # calculating Gruenlandtemperatursumme
+# Copyright (C) 2021, 2022 Johanna Roedenbeck
+
+"""
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+"""
 
 """
 
@@ -84,7 +101,7 @@
         
 """
 
-VERSION = "0.8a4"
+VERSION = "0.8a5"
 
 # deal with differences between python 2 and python 3
 try:
@@ -1024,12 +1041,12 @@ class GTSType(weewx.xtypes.XType):
             #loginf("GDD %s" % option_dict)
             #loginf("GDD %s" % aggregate_type)
             if aggregate_type.lower()=='avg':
-                if timespan.start>time.time() or (timespan.start+timespan.stop)/2>time.time()+90000:
+                if timespan.start>time.time() or (timespan.start/2+timespan.stop/2)>time.time()+90000:
                     return weewx.units.ValueTuple(None,'degree_C_day','group_degree_days')
-                return self.get_scalar(obs_type,{'dateTime':(timespan.start+timespan.stop)/2},db_manager,**option_dict)
+                return self.get_scalar(obs_type,{'dateTime':(timespan.start/2+timespan.stop/2)},db_manager,**option_dict)
             if aggregate_type.lower()=='last':
                 return self.get_scalar(obs_type,{'dateTime':timespan.stop},db_manager,**option_dict)
-            raise weewx.UnknownAggregation("%s undefinded aggregation %s" % (obs_type,aggregation_type))
+            raise weewx.UnknownAggregation("%s undefinded aggregation %s" % (obs_type,aggregate_type))
 
         # derived meteorological readings
         if obs_type in ('outSVP','outVaporP','outMixingRatio',

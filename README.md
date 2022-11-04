@@ -360,14 +360,14 @@ for iteration.
 
 <img src="daylight-timespan.png" />
 
-* `$daylight(day=None, data_binding=None, days_ago=0, horizon=None, use_center=False)`
+* `$daylight(timestamp=None, data_binding=None, days_ago=0, horizon=None, use_center=False)`
 
    timespan from sunrise to sunset
 
-   If `day` is None (the default), it is the timespan from sunrise to
+   If `timestamp` is None (the default), it is the timespan from sunrise to
    sunset of the current day or the day `days_ago` days ago.
 
-   Otherwise `day` can be a class TimespanBinder, a timespan or a
+   Otherwise `timestamp` can be a class TimespanBinder, a timespan or a
    timestamp. `$daylight` is then the timespan between sunrise and sunset
    of the day the specified timespan or timestamp is in. This is useful
    in `#for` loops over days.
@@ -416,12 +416,12 @@ Examples:
   <th>Day rain</th>
   <th>Night rain</th>
   </tr>
-  #for $day in $week.days
-  #set $light=$daylight(day=$day)
-  #set $nightrain=$day.rain.sum.raw-$light.rain.sum.raw
+  #for $dd in $week.days
+  #set $light=$daylight(timestamp=$dd)
+  #set $nightrain=$dd.rain.sum.raw-$light.rain.sum.raw
   #set $nightrain_vh=ValueHelper(ValueTuple($nightrain,$unit.unit_type.rain,'group_rain'),formatter=$station.formatter)
   <tr>
-  <td>$day.start.format("%Y-%m-%d")</td>
+  <td>$dd.start.format("%Y-%m-%d")</td>
   <td>$light.rain.sum</td>
   <td>$nightrain_vh</td>
   </tr>

@@ -373,16 +373,16 @@ zu bilden.
 
 <img src="daylight-timespan.png" />
 
-* `$daylight(day=None, data_binding=None, days_ago=0, horizon=None, use_center=False)`: 
+* `$daylight(timestamp=None, data_binding=None, days_ago=0, horizon=None, use_center=False)`: 
 
    Zeitspanne von
    Sonnenaufgang bis Sonnenuntergang
 
-   Wenn `day` None ist (das ist der Standard), dann ist es die Zeitspanne
+   Wenn `timestamp` None ist (das ist der Standard), dann ist es die Zeitspanne
    von Sonnenaufgang bis Sonnenuntergang am gegenwärtigen Tag oder an
    dem Tag, der `day_ago` Tage zurückliegt.
 
-   Sonst kann `day` ein Wert der Klasse TimespanBinder, eine Zeitspanne
+   Sonst kann `timestamp` ein Wert der Klasse TimespanBinder, eine Zeitspanne
    oder ein Zeitpunkt sein. `$daylight` ist dann die Zeitspanne 
    von Sonnenaufgang bis Sonnenuntergang an dem Tag, der durch
    die Zeitspanne oder den Zeitpunkt definiert wird.
@@ -426,12 +426,12 @@ Beispiele:
   <th>Day rain</th>
   <th>Night rain</th>
   </tr>
-  #for $day in $week.days
-  #set $light=$daylight(day=$day)
-  #set $nightrain=$day.rain.sum.raw-$light.rain.sum.raw
+  #for $dd in $week.days
+  #set $light=$daylight(timestamp=$dd)
+  #set $nightrain=$dd.rain.sum.raw-$light.rain.sum.raw
   #set $nightrain_vh=ValueHelper(ValueTuple($nightrain,$unit.unit_type.rain,'group_rain'),formatter=$station.formatter)
   <tr>
-  <td>$day.start.format("%d.%m.%Y")</td>
+  <td>$dd.start.format("%d.%m.%Y")</td>
   <td>$light.rain.sum</td>
   <td>$nightrain_vh</td>
   </tr>
