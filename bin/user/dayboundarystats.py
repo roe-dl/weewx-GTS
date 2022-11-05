@@ -227,12 +227,18 @@ def genWeekSpansWithoutDST(start_ts, stop_ts):
 
 def get_sunrise_sunset(ts, latlon, horizon, use_center, db_lookup, report_time, formatter, converter, **option_dict):
     # (derived from cheetahgenerator.py, Copyright Tom Keffer)
+    try:
+        # get the middle of the timespan ts
+        ts = ts.start//2 + ts.stop//2
+    except (LookupError,AttributeError):
+        # ts is already a timestamp, do nothing
+        pass
     # ICAO standard athmosphere
     temperature_C = 15.0
     pressure_mbar = 1013.25
     try:
         # get timestamp of sunrise and sunset out of pyephem
-        alm = Almanac(ts.start, 
+        alm = Almanac(ts, 
                       latlon[0], 
                       latlon[1], 
                       altitude=latlon[2],
@@ -457,9 +463,9 @@ class DayboundaryTimeBinder(TimeBinder):
                 ts = timestamp.timespan
                 self.db_lookup = timestamp.db_lookup
                 dbin = timestamp.data_binding if timestamp.data_binding else data_binding
-            except LookupError:
+            except (LookupError,AttributeError):
                 try:
-                    ts = (to_int(timestamp[0]),to_int(timestamp[1]))
+                    ts = TimeSpan(to_int(timestamp[0]),to_int(timestamp[1]))
                 except LookupError:
                     ts = daySpanTZ(self.lmt_tz, timestamp, days_ago=days_ago)
         else:
@@ -542,6 +548,11 @@ class DayboundaryTimespanBinder(TimespanBinder):
         """Generator function that returns TimespanBinder for the appropriate timespans"""
         for span in genSpanFunc(timespan.start, timespan.stop):
             yield DayboundaryTimespanBinder(span, *args, **option_dict)
+            
+    @property
+    def length(self):
+        val = weewx.units.ValueTuple(self.timespan.stop-self.timespan.start, 'second', 'group_deltatime')
+        return weewx.units.ValueHelper(val, 'delta_time', self.formatter, self.converter)
 
 
 class DayboundaryStats(SearchList):
