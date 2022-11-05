@@ -472,6 +472,31 @@ ihn vernachlässigen kann.
 Während die Einheit der Sonnenstrahlung W/m^2 ist, ist die Einheit
 der Sonnenenergie Wh/m^2 bzw. kWh/m^2.
 
+### Tageslichtzeitraum
+
+`$daylight` verwendet zur Berechnung das Modul von WeeWX, das 
+auch von `$almanac` verwendet wird, aber es berücksichtigt dabei
+zusäztliche Informationen.
+
+Während `$almanac.sunrise` und `$almanac.sunset` Sonnenaufgang und 
+Sonnenuntergang unter Verwendung der Temperatur und des Luftdrucks 
+zur Berechnungszeit ermitteln, berücksichtigt `$daylight` Temperatur 
+und Luftdruck der Zeit, für die die Tageslichtzeitspanne berechnet 
+wird, soweit Datenbankeinträge für diese Zeit vorhanden sind. Es 
+berechnet zunächst ungefähre Sonnenaufgangs- und Sonnenuntergangszeiten 
+für die ICAO-Standardatmosphäre bei 15°C und 1013,25 mbar. Dann wird 
+die tatsächliche Temperatur und der tatsächliche Luftdruck für diese 
+beiden Zeitpunkte ermittelt. Anschließend werden Sonnenaufgang und 
+Sonnenuntergang erneut berechnet, wobei der Berechnung die jeweilige 
+Temperatur und der jeweilige Luftdruck zu Grunde gelegt werden.
+
+`$daylight(timestamp=$X).start` liefert damit für Zeitpunkte X in
+der Vergangenheit eine genauere Sonnenaufgangszeit als
+`$almanac(almanac_time=X).sunrise`. Gleiches gilt mit
+`$daylight(timestamp=$X).end` sinngemäß für den Sonnenuntergang
+und mit `$daylight(timestamp=$X).length` für die Tageslichtlänge.
+(Stand: WeeWX 4.9.2)
+
 ## Quellen:
 
 * http://www.groitzsch-wetter.de/HP/green1.html

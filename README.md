@@ -455,6 +455,29 @@ together.
 While the unit label of the radiation reading is W/m^2, the unit label
 of the radiation energy is Wh/m^2.
 
+### Daylight timespan
+
+The `$daylight` tag uses the built-in module of WeeWX that provides 
+the `$almanac` tag.
+
+While `$almanac.sunrise` and `$almanac.sunset` calculate sunrise and
+sunset using the actual temperature and barometer of the calculation
+time, `$daylight` observes temperature and barometer of the time,
+the daylight timespan is calculated for if there are database records
+available. It first calculates approximate sunrise and sunset times
+for the ICAO standard atmosphere at 15°C and 1013.25 mbar. Then it
+looks up the real temperature and barometer for both those times.
+After that it calculates sunrise and sunset again, using the
+respective temperature and barometer.
+
+That's why `$daylight(timestamp=$X).start` provides a more accurate
+time for sunrise than `$almanac(timestamp=$X).sunrise` if `$X`
+is a timestamp somewhere in the past and database records are
+available for that time. The same applies to `$daylight(timestamp=$X).end`
+instead of `$almanac(almanac_time=$X).sunset` for sunset and 
+`$daylight(timestamp=$X).length` instead of
+`$almanac(almanac_time=$X).sun.visible` for the daylight duration.
+
 ## Sources:
 
 * http://www.groitzsch-wetter.de/HP/green1.html
