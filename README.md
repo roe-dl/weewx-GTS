@@ -428,6 +428,24 @@ Examples:
   #end for
   </table>
   ```
+* sunrise, sunset, and duration of daylight using the `timestamp` option
+  ```
+  <table>
+  <tr>
+    <th>sunrise</th>
+    <th>sunset</th>
+    <th>daylight</th>
+  </tr>
+  #for $dd in $week.days
+  <tr>
+    <td>$dd.format("%A")</td>
+    <td>$daylight(timestamp=$dd).start</td>
+    <td>$daylight(timestamp=$dd).end</td>
+    <td>$daylight(timestamp=$dd).length</td>
+  </tr>
+  #end for
+  </table>
+  ```
 
 ## Algorithm:
 

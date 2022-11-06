@@ -58,3 +58,6 @@
 0.8a5 04nov2022
 * rename option "day" to "timestamp"
 * get correct temperature and barometer for calculating sunrise and sunset in $daylight
+* property "length"
+0.8b1 06nov2022
+* docu
