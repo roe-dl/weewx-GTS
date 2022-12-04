@@ -8,8 +8,20 @@ import sys
   https://ing-moehn.de/das-ingenieurbuero-stellt-sich-vor/sonstiges/formelsammlung/drei-formeln/
   https://de.wikipedia.org/wiki/Clausius-Clapeyron-Gleichung
   https://de.wikipedia.org/wiki/Sättigungsdampfdruck#Korrekturfaktoren_für_feuchte_Luft
-  
+  https://de.wikipedia.org/wiki/Eigenschaften_des_Wassers
+  https://de.wikipedia.org/wiki/Vienna_Standard_Mean_Ocean_Water
+
+  "When adhering strictly to the two-point definition for calibration, the 
+  boiling point of VSMOW under one standard atmosphere of pressure was 
+  actually 373.1339 K (99.9839 °C). When calibrated to ITS-90 (a calibration 
+  standard comprising many definition points and commonly used for 
+  high-precision instrumentation), the boiling point of VSMOW was slightly 
+  less, about 99.974 °C."
+  [https://en.wikipedia.org/wiki/Celsius]
+ 
+  Siedepunkt des Wassers nach IPTS-68(?): 99,9839°C bei 1013.25 hPa
   Siedepunkt des Wassers nach ITS-90: 99.9743°C bei 1013.25hPa
+  Siedepunkt des Wassers nach IPTS-68: 100°C bei 1013.25hPa ("ocean water")
   Tripelpunkt des Wassers: 0,01°C bei 6.11657hPa
 
   https://www.uni-frankfurt.de/45359621/Generic_45359621.pdf
@@ -105,7 +117,7 @@ def boilingGG(pressure, eps=0.0001, temp0=85.0, temp1=105.0, log=False, n=0):
     return boilingGG(pressure, eps, temp0, temp1, log=log, n=n+1)
 
 
-def verdampfungsenthalpie(temp):
+def vaporizationEnthalpy(temp):
     """ Verdampfungsenthalpie von Wasser
     
         https://www.biancahoegel.de/thermodynamik/verdampfungsenthalpie.html
@@ -118,12 +130,12 @@ def verdampfungsenthalpie(temp):
     return (50.09-0.9298*T-65.19*T*T)*1000.0
 
 
-def boilingCC(pressure):
+def boilingTemperatureCC(pressure, temp1=99.9743, deltaH=40.657):
     """ Siedetemperatur von Wasser
     
         https://de.wikipedia.org/wiki/Clausius-Clapeyron-Gleichung
         
-        Clausius-Clapeyron-Gleichung, integriert für H=konst.
+        Clausius-Clapeyron-Gleichung, integriert für deltaH=konst.
         
         Gleichung gilt unter der Annahme einer konstanten Verdampfungs-
         enthalpie, was für kleine Temperaturbereiche zutrifft
@@ -131,10 +143,10 @@ def boilingCC(pressure):
         ln(p2/p1) = H/R * (1/T1 - 1/T2)
     """
     p1 = 1013.25 # hPa           Normaldruck
-    T1 = 99.9743+273.15 # K      Siedetemperatur bei Normaldruck
-    H = 40.657*1000.0 # J/mol    molare Verdampfungsenthalpie bei 100°C
+    T1 = temp1+273.15 # K        Siedetemperatur bei Normaldruck
+    deltaH *= 1000.0 # J/mol     molare Verdampfungsenthalpie bei 100°C
     R = 8.314462 # J mol^-1 K^-1 universelle Gaskonstante
-    temp = 1.0/(1.0/T1 - math.log(pressure/p1)*R/H)-273.15
+    temp = 1.0/(1.0/T1 - math.log(pressure/p1)*R/deltaH)-273.15
     return temp
 
 
@@ -155,12 +167,14 @@ if len(sys.argv)>1:
 
     if val>200:
     
+        # Siedetemperatur in Abhängigkeit vom Druck
         t0,t1 = boilinglimitsGG(val)
         print('Goff-Gratch        %.2f mbar --> %.2f°C' % (val,boilingGG(val,0.01,t0,t1,log=True)))
-        print('Clausius-Clapeyron %.2f mbar --> %.2f°C' % (val,boilingCC(val)))
+        print('Clausius-Clapeyron %.2f mbar --> %.2f°C' % (val,boilingTemperatureCC(val)))
         
     else:
     
+        # Sättigungsdampfdruck in Abhängigkeit von der Temperatur
         temp = val
         print('Temperatur: %s°C' % temp)
         print('Sättigungsdampfdruck:')
@@ -171,6 +185,8 @@ if len(sys.argv)>1:
 
 else:
 
+    # Tabelle des Sättigungsdampfdruckes über der Temperatur,
+    # berechnet nach Goff-Gratch
     print('Goff-Gratch:')
     print(' [°C]    [mbar]')
     for temp in range(985,1006,1):
