@@ -205,6 +205,8 @@ Warnung: Dieser Teil ist noch im Alpha-Status.
 * `outHumAbs`: absolute Luftfeuchtigkeit
 * `outEquiTemp`: Äquivalenttemperatur
 * `outThetaE`: potentielle Äquivalenttemperatur
+* `boilingTemp`: Siedetemperatur des Wassers in Abhängigkeit von
+  der Meereshöhe der Station und dem aktuellen Luftdruck
 
 #### Diagramme (ImageGenerator)
 

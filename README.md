@@ -196,6 +196,8 @@ to be evaluated.
 * `outHumAbs`: absolute humidity
 * `outEquiTemp`: equivalent temperature
 * `outThetaE`: equivalent potential temperature
+* `boilingTemp`: boiling temperature depending on station altitude
+  and actual air pressure
 
 #### Diagrams (ImageGenerator)
 
