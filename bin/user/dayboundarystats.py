@@ -47,7 +47,7 @@
 
 """
 
-VERSION = "0.8"
+VERSION = "1.0a1"
 
 # deal with differences between python 2 and python 3
 try:
@@ -266,21 +266,26 @@ def get_sunrise_sunset(ts, latlon, horizon, use_center, db_lookup, report_time, 
             rec = archive.getRecord(sunrise, max_delta=3600)
             if rec is not None:
                 if 'outTemp' in rec:
-                    temp1 = weewx.units.convert(weewx.units.as_value_tuple(rec, 'outTemp'), "degree_C")[0]
+                    x = weewx.units.convert(weewx.units.as_value_tuple(rec, 'outTemp'), "degree_C")[0]
+                    if x is not None: temp1 = x
                 if 'barometer' in rec:
-                    press1 = weewx.units.convert(weewx.units.as_value_tuple(rec, 'barometer'), "mbar")[0]
+                    x = weewx.units.convert(weewx.units.as_value_tuple(rec, 'barometer'), "mbar")[0]
+                    if x is not None: press1 = x
             rec = archive.getRecord(sunset, max_delta=3600)
             if rec is not None:
                 if 'outTemp' in rec:
-                    temp2 = weewx.units.convert(weewx.units.as_value_tuple(rec, 'outTemp'), "degree_C")[0]
+                    x = weewx.units.convert(weewx.units.as_value_tuple(rec, 'outTemp'), "degree_C")[0]
+                    if x is not None: temp2 = x
                 if 'barometer' in rec:
-                    press2 = weewx.units.convert(weewx.units.as_value_tuple(rec, 'barometer'), "mbar")[0]
+                    x = weewx.units.convert(weewx.units.as_value_tuple(rec, 'barometer'), "mbar")[0]
+                    if x is not None: press2 = x
         try:
             # get timestamp of sunrise and sunset out of pyephem
             sunrise = alm(temperature=temp1,pressure=press1).sun(use_center=use_center).rise.raw
             sunset = alm(temperature=temp2,pressure=press2).sun(use_center=use_center).set.raw
-        except Exception:
-            logerr("daylight2")
+        except Exception as e:
+            logerr("pyephem error %s %s" % (e.__class__.__name__,e))
+            logerr("pyephem error temp1 %s temp2 %s press1 %s press2 %s" % (temp1,temp2,press1,press2))
             pass
     except Exception:
         # If pyephem is not installed or another error occurs, use

@@ -64,3 +64,5 @@
 * bug fixes
 0.8 18nov2022
 * release
+1.0
+* changed error handling for pyephem in daybounderystats.py
