@@ -101,7 +101,7 @@
         
 """
 
-VERSION = "0.9a1"
+VERSION = "0.9a2"
 
 # deal with differences between python 2 and python 3
 try:
@@ -564,10 +564,12 @@ class GTSType(weewx.xtypes.XType):
                 pressure_mbar = weewx.units.convert(_result,'hPa')[0]
                 method = option_dict.get('algorithm','CC')
                 btemp_C = boilingTemperatureCC(pressure_mbar)
-            except (LookupError,TypeError,ArithmeticError):
+                usunits = record['usUnits']
+            except (LookupError,TypeError,ValueError,ArithmeticError):
                 btemp_C = None
+                usunits = 0x10
             __x = weewx.units.ValueTuple(btemp_C,'degree_C','group_temperature')
-            return weewx.units.convertStd(__x,record['usUnits'])
+            return weewx.units.convertStd(__x,usunits)
                 
         # This functions handles 'GTS' and 'GTSdate'.
         if obs_type not in ['GTS','GTSdate','dayET','ET24','yearGDD','seasonGDD']:
