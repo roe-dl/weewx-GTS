@@ -498,6 +498,24 @@ instead of `$almanac(almanac_time=$X).sunset` for sunset and
 `$daylight(timestamp=$X).length` instead of
 `$almanac(almanac_time=$X).sun.visible` for the daylight duration.
 
+## Barometer
+
+WeeWX includes several algorithms to calculate the barometer value
+out of the station pressure. Unfortunately those algorithms are
+not available to the user by default. And by 2023 there is no
+way to pass parameters to an XType. The barometer extension does
+a little bit of that and allows to add an algorithm name to
+the observation type `barometer`. This allows the following
+observation types:
+
+* `barometerManBar`
+* `barometerDavisVp`
+* `barometerUnivie`
+* `barometerDWD`
+
+This is a temporary workaround only. It will be removed when WeeWX
+fully implements parameters to observation types.
+
 ## Sources:
 
 * http://www.groitzsch-wetter.de/HP/green1.html

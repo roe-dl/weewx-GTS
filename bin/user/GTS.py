@@ -101,7 +101,7 @@
         
 """
 
-VERSION = "0.9a2"
+VERSION = "1.0a2"
 
 # deal with differences between python 2 and python 3
 try:
@@ -1237,6 +1237,11 @@ class GTSType(weewx.xtypes.XType):
         raise weewx.CannotCalculate("%s %s" % (obs_type,aggregate_type))
 
 
+try:
+    import user.barometer
+    has_baro = True
+except ImportError:
+    has_baro = False
 
 # This is a WeeWX service, whose only job is to register and unregister the extension
 class GTSService(StdService):
@@ -1246,8 +1251,9 @@ class GTSService(StdService):
         
         # the station's location
         # (needed for calculation of the local mean time (LMT))
-        __lat=engine.stn_info.latitude_f
-        __lon=engine.stn_info.longitude_f
+        __lat = engine.stn_info.latitude_f
+        __lon = engine.stn_info.longitude_f
+        __alt_vt = engine.stn_info.altitude_vt
 
         # saturation vapor pressure calculation method
         __svp_method = config_dict.get('StdWXCalculate',{}).get('WXXTypes',{}).get('VaporPressure',{})
@@ -1262,6 +1268,16 @@ class GTSService(StdService):
         # Note: This can be overwritten by the 'search_list' entry in skin_dict
         weewx.cheetahgenerator.default_search_list.append('user.dayboundarystats.DayboundaryStats')
         
+        # Register barometer workaround
+        loginf('PressureCooker %s' % has_baro)
+        if has_baro:
+            pc_dict =  config_dict.get('StdWXCalculate',{}).get('PressureCooker',{})
+            self.barometer = user.barometer.PressureCooker(__alt_vt,
+                max_delta_12h=weeutil.weeutil.to_float(pc_dict.get('max_delta_12h',1800)),
+                altimeter_algorithm=pc_dict.get('altimeter',{}).get('algorithm','aaASOS'),
+                barometer_algorithm=pc_dict.get('barometer',{}).get('algorithm','paWView'))
+            weewx.xtypes.xtypes.append(self.barometer)
+        
     def shutDown(self):
     
         # Engine is shutting down. Remove the registration
@@ -1269,5 +1285,9 @@ class GTSService(StdService):
         
         # Remove tag registration
         weewx.cheetahgenerator.default_search_list.remove('user.dayboundarystats.DayboundaryStats')
+        
+        # Remove barometer workaround
+        if has_baro:
+            weewx.xtypes.xtypes.remove(self.barometer)
 
 
