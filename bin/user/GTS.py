@@ -101,7 +101,7 @@
         
 """
 
-VERSION = "1.0a2"
+VERSION = "1.0a3"
 
 # deal with differences between python 2 and python 3
 try:
@@ -490,7 +490,7 @@ class GTSType(weewx.xtypes.XType):
 
         if obs_type is None:
             raise weewx.UnknownType("obs_type is None")
-            
+        
         # time offset of local mean time (LMT)
         if obs_type=='utcoffsetLMT':
             return weewx.units.ValueTuple(self.lmt_tz.utcoffset(None).total_seconds(),'second','group_deltatime')
@@ -511,7 +511,10 @@ class GTSType(weewx.xtypes.XType):
                         'outEquiTemp','outThetaE'):
             #_result = weewx.xtypes.get_scalar('outTemp',record,db_manager)
             try:
+                # If record is None or `outTemp` not in record, then
+                # a ValueTuple with the value of None is returned
                 _result = weewx.units.as_value_tuple(record,'outTemp')
+                # If _result represents a value of None, temp_C is None, too.
                 temp_C = weewx.units.convert(_result,'degree_C')[0]
                 method = option_dict.get('method',self.svp_method)
                 if obs_type=='outSVP':
@@ -959,11 +962,11 @@ class GTSType(weewx.xtypes.XType):
                         valtime = _result[0]
                     else:
                         raise weewx.UnknownType("%s.%s: unknown aggregation type" % (obs_type,aggregate_type))
-            if aggregate_type=='avg': 
-                if n>0:
-                    val /= n
-                else:
-                    val = None
+            if n==0:
+                _x = self.get_scalar(obs_type, None, None, **option_dict)
+                val = _x[0]
+            elif aggregate_type=='avg': 
+                val /= n
             if 'time' in aggregate_type:
                 return weewx.units.ValueTuple(valtime,'unix_epoch','group_time')
             if aggregate_type=='count':
@@ -1276,6 +1279,7 @@ class GTSService(StdService):
                 max_delta_12h=weeutil.weeutil.to_float(pc_dict.get('max_delta_12h',1800)),
                 altimeter_algorithm=pc_dict.get('altimeter',{}).get('algorithm','aaASOS'),
                 barometer_algorithm=pc_dict.get('barometer',{}).get('algorithm','paWView'))
+            loginf('PressureCooker %s ' % self.barometer)
             weewx.xtypes.xtypes.append(self.barometer)
         
     def shutDown(self):

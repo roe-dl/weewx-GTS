@@ -68,3 +68,4 @@
 * changed error handling for pyephem in daybounderystats.py
 * fix bug that caused exception if record is None
 * expose barometer algorithms to the user
+* fix bug that caused values of 1e10 or -1e10 in certain conditions

@@ -10,7 +10,7 @@ def loader():
 class GTSInstaller(ExtensionInstaller):
     def __init__(self):
         super(GTSInstaller, self).__init__(
-            version="1.0a2",
+            version="1.0a3",
             name='GTS',
             description='Provides Gruenlandtemperatursumme (GTS), a kind of growing degree days',
             author="Johanna Roedenbeck",
