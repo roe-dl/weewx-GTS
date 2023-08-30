@@ -64,7 +64,7 @@
 * bug fixes
 0.8 18nov2022
 * release
-1.0
+1.0 20aug2023
 * changed error handling for pyephem in daybounderystats.py
 * fix bug that caused exception if record is None
 * expose barometer algorithms to the user
