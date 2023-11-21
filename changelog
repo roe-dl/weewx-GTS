@@ -69,3 +69,5 @@
 * fix bug that caused exception if record is None
 * expose barometer algorithms to the user
 * fix bug that caused values of 1e10 or -1e10 in certain conditions
+1.1
+* added unit `pF_value`

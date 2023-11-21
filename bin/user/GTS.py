@@ -1,5 +1,5 @@
 # calculating Gruenlandtemperatursumme
-# Copyright (C) 2021, 2022 Johanna Roedenbeck
+# Copyright (C) 2021, 2022, 2023 Johanna Roedenbeck
 
 """
 
@@ -101,7 +101,7 @@
         
 """
 
-VERSION = "1.0"
+VERSION = "1.1"
 
 # deal with differences between python 2 and python 3
 try:
@@ -129,6 +129,7 @@ import weedb
 import weewx
 import weewx.manager
 import weewx.units
+import weewx.defaults
 import weewx.xtypes
 import weewx.wxformulas
 import weewx.uwxutils
@@ -236,11 +237,37 @@ weewx.units.conversionDict['microgram_per_meter_cubed']['gram_per_meter_cubed'] 
 weewx.units.conversionDict['microgram_per_meter_cubed']['milligram_per_meter_cubed'] = lambda x : x*0.001
 weewx.units.conversionDict['milligram_per_meter_cubed']['gram_per_meter_cubed'] = lambda x : x*0.001
 weewx.units.conversionDict['gram_per_meter_cubed']['milligram_per_meter_cubed'] = lambda x : x*1000
-weewx.units.default_unit_format_dict.setdefault('gram_per_meter_cubed',"%.1f")
-weewx.units.default_unit_label_dict.setdefault('gram_per_meter_cubed',u" g/m³")
-weewx.units.default_unit_format_dict.setdefault('milligram_per_meter_cubed',"%.1f")
-weewx.units.default_unit_label_dict.setdefault('milligram_per_meter_cubed',u" mg/m³")
+weewx.defaults.defaults['Units']['StringFormats'].setdefault('gram_per_meter_cubed',"%.1f")
+weewx.defaults.defaults['Units']['Labels'].setdefault('gram_per_meter_cubed',u" g/m³")
+weewx.defaults.defaults['Units']['StringFormats'].setdefault('milligram_per_meter_cubed',"%.1f")
+weewx.defaults.defaults['Units']['Labels'].setdefault('milligram_per_meter_cubed',u" mg/m³")
 
+# unit centibar for 'group_moisture'
+# Note: The unit 'centibar' is defined in core WeeWX, but no conversion 
+#       to other pressure units is defined.
+weewx.units.conversionDict.setdefault('centibar',dict())
+weewx.units.conversionDict['centibar']['mbar'] = lambda x: x*10.0
+weewx.units.conversionDict['centibar']['hPa'] = lambda x: x*10.0
+weewx.units.conversionDict['centibar']['kPa'] = lambda x: x
+weewx.units.conversionDict['centibar']['mmHg'] = lambda x: x*7.5006168
+weewx.units.conversionDict['centibar']['inHg'] = lambda x: x*weewx.units.INHG_PER_MBAR*10.0
+weewx.units.conversionDict['mbar']['centibar'] = lambda x: x/10.0
+weewx.units.conversionDict['hPa']['centibar'] = lambda x: x/10.0
+weewx.units.conversionDict['kPa']['centibar'] = lambda x: x
+
+# unit pF_value for 'group_moisture'
+# Note: We assume that the suction pressure of plants physically cannot go 
+#       down to 0. So, the logarithm cannot be undefined. Nevertheless,
+#       the Davis soil moisture device can return a reading of 0. That's
+#       why we have to handle this case. The lower limit of the pF value 
+#       as shown in literature is 0.0. For those reasons a pF value of 0.0
+#       is returned for all suction pressure readings below 0.1 centibar.
+weewx.units.conversionDict['centibar']['pF_value'] = lambda x: math.log10(abs(x*10)) if abs(x)>=0.1 else 0.0
+weewx.units.conversionDict['mbar']['pF_value'] = lambda x: math.log10(abs(x)) if abs(x)>=1.0 else 0.0
+weewx.units.conversionDict['hPa']['pF_value'] = lambda x: math.log10(abs(x)) if abs(x)>=1.0 else 0.0
+weewx.units.conversionDict['kPa']['pF_value'] = lambda x: math.log10(abs(x*10)) if abs(x)>=0.1 else 0.0
+weewx.defaults.defaults['Units']['StringFormats'].setdefault('pF_value','%.1f')
+weewx.defaults.defaults['Units']['Labels'].setdefault('pF_value',u'')
 
 class GTSType(weewx.xtypes.XType):
 

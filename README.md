@@ -319,6 +319,19 @@ to your `skin.conf`:
 
 This creates a file for every year that data is available for.
 
+### Soil moisture
+
+For soil moisture WeeWX defines the unit group `group_moisture` 
+using the unit `centibar`. This presumably refers to the Davis
+Instruments soil moisture/temperature station 6345, which 
+strictly speaking does not measure moisture but suction pressure.
+
+Sometimes this pressure is expressed in a logarithmic value
+called pF value. This extension provides the pF value as an
+additional unit to `group_moisture`, called `pF_value`.
+It makes other pressure units than `centibar` available to
+`group_moisture`, too.
+
 ### Special time spans
 
 Sometimes day span used in meteorology are not from midnight to midnight

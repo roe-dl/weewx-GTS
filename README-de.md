@@ -334,6 +334,19 @@ Eintragungen vorzunehmen:
 Damit wird für jedes Jahr, für das Daten in der Datenbank verfügbar
 sind, eine Datei erzeugt. 
 
+### Bodenfeuchte
+
+WeeWX definiert die Einheitengruppe `group_moisture` mit der Einheit
+`centibar`, wohl in Anlehnung an die von Davis Instruments vertriebene
+Bodenfeuchte-Bodentemperatur-Einheit 6345. Diese Einheit mißt genaugenommen
+nicht die Feuchte sondern die Saugspannung.
+
+Anstelle der Saugspannung, gemessen in einer Druckeinheit, wird auch
+die logarithmische Größe pF-Wert benutzt. Diese WeeWX-Erweiterung
+stellt diese Größe als zusätzliche Einheit `pF_value` für
+`group_moisture` bereit. Sie ermöglicht gleichzeitig, auch andere
+Druckeinheiten als nur `centibar` zu nutzen.
+
 ### Besondere Zeitspannen
 
 In der Meteorologie werden Zeitspannen zuweilen nicht von Mitternacht zu Mitternacht
