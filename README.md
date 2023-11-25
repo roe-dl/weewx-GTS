@@ -61,9 +61,18 @@ XType extension for WeeWX to provide
    
 5) restart weewx
 
+   for SysVinit systems:
+
    ```
    sudo /etc/init.d/weewx stop
    sudo /etc/init.d/weewx start
+   ```
+
+   for systemd systems:
+
+   ```
+   sudo systemctl stop weewx
+   sudo systemctl start weewx
    ```
 
 ## Including in skins:
