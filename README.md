@@ -15,11 +15,23 @@ XType extension for WeeWX to provide
 
 1) download
 
+   ```
    wget -O weewx-GTS.zip https://github.com/roe-dl/weewx-GTS/archive/master.zip
+   ```
 
 2) run the installer
 
+   WeeWX up to version 4.X
+
+   ```
    sudo wee_extension --install weewx-GTS.zip
+   ```
+
+   WeeWX from version 5.0 on
+
+   ```
+   sudo weectl extension install weewx-GTS.zip
+   ```
 
 3) check configuration in weewx.conf
 
@@ -66,10 +78,10 @@ below.
 
 #### Display values (CheetahGenerator)
 
-* **GTS**: the value of "Grünlandtemperatursumme" itself (example tag: `$current.GTS`)
-* **GTSdate**: the date when the GTS value exceeds 200, which is considered the beginning of real spring (example tag: `$day.GTSdate.last.format("%Y-%m-%d")`)
-* **utcoffsetLMT**: offfset of the local mean time (Ortszeit) at the station's location
-* **LMTtime**: a string showing the local mean time (Ortszeit) at the station's location (can only be used with ".raw", example tag: `$current.LMTtime.raw`)
+* `GTS`: the value of "Grünlandtemperatursumme" itself (example tag: `$current.GTS`)
+* `GTSdate`: the date when the GTS value exceeds 200, which is considered the beginning of real spring (example tag: `$day.GTSdate.last.format("%Y-%m-%d")`)
+* `utcoffsetLMT`: offfset of the local mean time (Ortszeit) at the station's location
+* `LMTtime`: a string showing the local mean time (Ortszeit) at the station's location (can only be used with ".raw", example tag: `$current.LMTtime.raw`)
 
 The values can be used together with every time period defined in the customization guide of WeeWX. There can be used aggregations as well. The following aggregations are defined: "**avg**", "**min**", "**max**", "**last**". Not all time spans are possible. 
 
@@ -115,12 +127,12 @@ These examples create image files named 'monthGTS.png' or 'yearGTS.png', respect
 
 #### Display values (CheetahGenerator)
 
-* **yearGDD**: the sum or integral of growing degrees from the beginning of
+* `yearGDD`: the sum or integral of growing degrees from the beginning of
   the actual year up to the current time
-* **seasonGDD**: the sum or integral of growing degrees from `GTSdate` up to
+* `seasonGDD`: the sum or integral of growing degrees from `GTSdate` up to
   the current time. Before `GTSdate` the value is undefined. After October 31st
   it is undefined, too.
-* aggregation type **GDD** (or **growdeg**): Used to calculate growing
+* aggregation type `GDD` (or `growdeg`): Used to calculate growing
   degree days for observation types other than `outTemp`. This can be
   every temperature value, say greenhouse temperature.
 
