@@ -44,8 +44,8 @@ XType extension for WeeWX to provide
            utcoffsetLMT = software, archive
            dayET = prefer_hardware, archive
            ET24 = prefer_hardware, archive
-           yearGDD = software
-           seasonGDD = software
+           yearGDD = software, archive
+           seasonGDD = software, archive
            outVaporP = software,loop
            outSVP    = software,loop
            outMixingRatio = software,loop
