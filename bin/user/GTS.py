@@ -262,10 +262,13 @@ weewx.units.conversionDict['kPa']['centibar'] = lambda x: x
 #       why we have to handle this case. The lower limit of the pF value 
 #       as shown in literature is 0.0. For those reasons a pF value of 0.0
 #       is returned for all suction pressure readings below 0.1 centibar.
-weewx.units.conversionDict['centibar']['pF_value'] = lambda x: math.log10(abs(x*10)) if abs(x)>=0.1 else 0.0
-weewx.units.conversionDict['mbar']['pF_value'] = lambda x: math.log10(abs(x)) if abs(x)>=1.0 else 0.0
-weewx.units.conversionDict['hPa']['pF_value'] = lambda x: math.log10(abs(x)) if abs(x)>=1.0 else 0.0
-weewx.units.conversionDict['kPa']['pF_value'] = lambda x: math.log10(abs(x*10)) if abs(x)>=0.1 else 0.0
+def hPa_to_pF(x):
+    if x is None: return None
+    return math.log10(abs(x)) if abs(x)>=1.0 else 0.0
+weewx.units.conversionDict['centibar']['pF_value'] = lambda x: hPa_to_pF(x*10)
+weewx.units.conversionDict['mbar']['pF_value'] = hPa_to_pF
+weewx.units.conversionDict['hPa']['pF_value'] = hPa_to_pF
+weewx.units.conversionDict['kPa']['pF_value'] = lambda x: hPa_to_pF(x*10)
 weewx.defaults.defaults['Units']['StringFormats'].setdefault('pF_value','%.1f')
 weewx.defaults.defaults['Units']['Labels'].setdefault('pF_value',u'')
 
