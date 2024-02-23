@@ -1,5 +1,5 @@
 # calculating Gruenlandtemperatursumme
-# Copyright (C) 2021, 2022, 2023 Johanna Roedenbeck
+# Copyright (C) 2021, 2022, 2023, 2024 Johanna Roedenbeck
 
 """
 
@@ -975,9 +975,9 @@ class GTSType(weewx.xtypes.XType):
                 _x = self.get_scalar(obs_type, _rec, db_manager, **option_dict)
                 if _x[0] is not None: 
                     n += 1
-                    if aggregate_type=='count':
+                    if aggregate_type in ('count','not_null','has_data','exists'):
                         pass
-                    if aggregate_type=='avg':
+                    elif aggregate_type=='avg':
                         val += _x[0]
                     elif aggregate_type in ('min','mintime'):
                         if _x[0]<val: 
@@ -992,15 +992,19 @@ class GTSType(weewx.xtypes.XType):
                         valtime = _result[0]
                     else:
                         raise weewx.UnknownType("%s.%s: unknown aggregation type" % (obs_type,aggregate_type))
+            if aggregate_type in ('not_null','has_data'):
+                return weewx.units.ValueTuple(n>0,'boolean','group_boolean')
+            if aggregate_type=='exists':
+                return weewx.units.ValueTuple(True,'boolean','group_boolean')
+            if aggregate_type=='count':
+                return weewx.units.ValueTuple(n,'count','group_count')
+            if 'time' in aggregate_type:
+                return weewx.units.ValueTuple(valtime,'unix_epoch','group_time')
             if n==0:
                 _x = self.get_scalar(obs_type, None, None, **option_dict)
                 val = _x[0]
             elif aggregate_type=='avg': 
                 val /= n
-            if 'time' in aggregate_type:
-                return weewx.units.ValueTuple(valtime,'unix_epoch','group_time')
-            if aggregate_type=='count':
-                return weewx.units.ValueTuple(n,'count','group_count')
             return weewx.units.ValueTuple(val,_x[1],_x[2])
         except weedb.OperationalError as e:
             raise weewx.CannotCalculate("%s.%s: Database OperationalError '%s'" % (obs_type,aggregate_type,e))
@@ -1112,6 +1116,41 @@ class GTSType(weewx.xtypes.XType):
                 return self.get_scalar(obs_type,{'dateTime':(timespan.start/2+timespan.stop/2)},db_manager,**option_dict)
             if aggregate_type.lower()=='last':
                 return self.get_scalar(obs_type,{'dateTime':timespan.stop},db_manager,**option_dict)
+            if aggregate_type.lower() in ('not_null','has_data'):
+                # year of the timespan start
+                year_timespan = weeutil.weeutil.archiveYearSpan(timespan.start)
+                # If timespan.start is already the start of the year, archiveYearSpan()
+                # returns the previous year. So add one year.
+                if year_timespan.stop==timespan.start:
+                    year_timespan = weeutil.weeutil.archiveYearSpan(timespan.start,years_ago=-1)
+                # If `outTemp` is present from the beginning of the year up to the beginning
+                # of the timespan in question, at least one reading could be returned. This
+                # is the condition to return True
+                _, _, val = weewx.xtypes.get_series(
+                    'outTemp',
+                    TimeSpan(year_timespan.start,timespan.start+86400),
+                    db_manager,
+                    'not_null',
+                    86400,
+                    **option_dict
+                )
+                try:
+                    val = min(val[0])
+                except (TypeError,ValueError,LookupError):
+                    val = False
+                # If the timespan covers more than one year and the result is False
+                # for the first year, try the next year(s).
+                while not val and timespan.stop>year_timespan.stop:
+                    year_timespan = weeutil.weeutil.archiveYearSpan(year_timespan.stop,years_ago=-1)
+                    val = weewx.xtypes.get_aggregate(
+                        'outTemp',
+                        TimeSpan(year_timespan.start,year_timespan.start+86400),
+                        'not_null',
+                        db_manager,
+                        **option_dict
+                    )[0]
+                # return result
+                return weewx.units.ValueTuple(val,'boolean','group_boolean')
             raise weewx.UnknownAggregation("%s undefinded aggregation %s" % (obs_type,aggregate_type))
 
         # derived meteorological readings
@@ -1123,8 +1162,11 @@ class GTSType(weewx.xtypes.XType):
         if obs_type!='GTS' and obs_type!='GTSdate':
             raise weewx.UnknownType(obs_type)
         
+        if aggregate_type=='exists':
+            return weewx.units.ValueTuple(True,'boolean','group_boolean')
+        
         # aggregation types that are defined for those values
-        if aggregate_type not in ['avg','max','min','last','maxtime','mintime','lasttime']:
+        if aggregate_type not in ['avg','max','min','last','maxtime','mintime','lasttime','not_null','has_data']:
             raise weewx.UnknownAggregation("%s undefinded aggregation %s" % (obs_type,aggregate_type))
 
         if timespan is None:
@@ -1237,6 +1279,8 @@ class GTSType(weewx.xtypes.XType):
                 __x=weewx.units.ValueTuple(__min,'degree_C_day','group_degree_day')
             elif aggregate_type=='mintime':
                 __x=weewx.units.ValueTuple(__mintime,'unix_epoch','group_time')
+            elif aggregate_type in ('not_null','has_data'):
+                __x = (__mintime is not None or __maxtime is not None,'boolean','group_boolean')
             else:
                 raise weewx.CannotCalculate("%s %s" % (obs_type,aggregate_type))
             """
@@ -1323,5 +1367,3 @@ class GTSService(StdService):
         # Remove barometer workaround
         if has_baro:
             weewx.xtypes.xtypes.remove(self.barometer)
-
-
