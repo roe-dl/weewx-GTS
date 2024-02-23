@@ -92,7 +92,8 @@ below.
 * `utcoffsetLMT`: offfset of the local mean time (Ortszeit) at the station's location
 * `LMTtime`: a string showing the local mean time (Ortszeit) at the station's location (can only be used with ".raw", example tag: `$current.LMTtime.raw`)
 
-The values can be used together with every time period defined in the customization guide of WeeWX. There can be used aggregations as well. The following aggregations are defined: "**avg**", "**min**", "**max**", "**last**". Not all time spans are possible. 
+The values can be used together with every time period defined in the customization guide of WeeWX. There can be used aggregations as well. The following aggregations are defined:
+`avg`, `min`, `max`, `last`, `has_data`, `not_null`. Not all time spans are possible. 
 
 See http://weewx.com/docs/customizing.htm#Tags for details on how to use tags in skins.
 

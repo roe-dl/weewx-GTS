@@ -13,11 +13,23 @@ XType-Erweiterung für WeeWX
 
 1) Download
 
+   ```shell
    wget -O weewx-GTS.zip https://github.com/roe-dl/weewx-GTS/archive/master.zip
+   ```
 
 2) Aufruf des Installationsprogramms
 
+   WeeWX bis Version 4.10
+
+   ```shell
    sudo wee_extension --install weewx-GTS.zip
+   ```
+
+   WeeWX ab Version 5.0
+
+   ```shell
+   sudo weectl extension install weewx-GTS.zip
+   ```
 
 3) Prüfung der Konfiguration in weewx.conf
 
@@ -30,8 +42,14 @@ XType-Erweiterung für WeeWX
            utcoffsetLMT = software, archive
            dayET = prefer_hardware, archive
            ET24 = prefer_hardware, archive
-           yearGDD = software
-           seasonGDD = software
+           yearGDD = software, archive
+           seasonGDD = software, archive
+           outVaporP = software,loop
+           outSVP    = software,loop
+           outMixingRatio = software,loop
+           outEquiTemp = software,loop
+           outThetaE = software,loop
+           outHumAbs = software,loop
    ...
    [Engine]
        [[Services]]
@@ -41,9 +59,18 @@ XType-Erweiterung für WeeWX
    
 5) Neustart von WeeWX
 
-   ```
+   bei SysVinit-Systemen:
+
+   ```shell
    sudo /etc/init.d/weewx stop
    sudo /etc/init.d/weewx start
+   ```
+
+   bei systemd-Systemen:
+
+   ```shell
+   sudo systemctl stop weewx
+   sudo systemctl start weewx
    ```
 
 ## Nutzung in Skins:
@@ -61,17 +88,17 @@ des Frühjahrs und wann das Pflanzenwachstum beginnt.
 
 #### Werte anzeigen (CheetahGenerator)
 
-* **GTS**: der Wert der Grünlandtemperatursumme (Beispiel: `$current.GTS`)
-* **GTSdate**: das Datum, wenn die Grünlandtemperatursumme den Wert von 200
+* `GTS`: der Wert der Grünlandtemperatursumme (Beispiel: `$current.GTS`)
+* `GTSdate`: das Datum, wenn die Grünlandtemperatursumme den Wert von 200
   überschreitet, was als Beginn des Frühlings betrachtet wird (Beispiel: `$day.GTSdate.last.format("%d.%m.%Y")`)
-* **utcoffsetLMT**: Offfset der Ortszeit gegenüber UTC am Ort der Station
-* **LMTtime**: ein String, der die Ortszeit bei der letzten Speicherung
+* `utcoffsetLMT`: Offfset der Ortszeit gegenüber UTC am Ort der Station
+* `LMTtime`: ein String, der die Ortszeit bei der letzten Speicherung
   angibt (nur mit ".raw" nutzbar, Beispiel: `$current.LMTtime.raw`)
 
 Die Werte können zusammen mit jedem Zeitraum verwendet werden, der in
-WeeWX verfügbar ist. Es sind die "aggregation_types" "**avg**", "**min**",
-"**max**" und "**last**" definiert. Nicht alle Zeiträume sind mit jeder
-Zusammenfassung möglich.
+WeeWX verfügbar ist. Es sind die "aggregation_types" `avg`, `min`,
+`max`, `last`, `has_data` und `not_null` definiert. Nicht alle Zeiträume 
+sind mit jeder Zusammenfassung möglich.
 
 Unter https://weewx.com/docs/customizing.htm#Tags ist die Nutzung von
 Tags in WeeWX beschrieben.
@@ -120,12 +147,12 @@ einzutragen:
 
 #### Werte anzeigen (CheetahGenerator)
 
-* **yearGDD**: Summe oder Integral der Wachstumsgrade vom Anfang des Jahres bis zum
+* `yearGDD`: Summe oder Integral der Wachstumsgrade vom Anfang des Jahres bis zum
   zum aktuellen Moment
-* **seasonGDD**: Summe oder Integral der Wachstumsgrade beginnend beim Datum von `GTSdate`
+* `seasonGDD`: Summe oder Integral der Wachstumsgrade beginnend beim Datum von `GTSdate`
   bis zum aktuellen Moment. Vor `GTSdate` ist der Wert undefiniert, ebenso nach dem
   31. Oktober
-* `aggregation_type` **GDD** (oder **growdeg**): Zur Berechnung der Wachstumsgradtage
+* aggregation_type `GDD` (oder `growdeg`): Zur Berechnung der Wachstumsgradtage
   für andere Größen als `outTemp`. Das kann jeder Temperaturwert sein, zum Beispiel
   die Gewächshaustemperatur.
 
@@ -172,14 +199,14 @@ Um dieses Diagramm anzuzeigen, ist folgende Eintragung zum Beispiel in index.htm
 
 #### Werte anzeigen (CheetahGenerator)
 
-* **dayET**: Summe von ET für den Kalendertag, so wie "dayRain" für den
+* `dayET`: Summe von ET für den Kalendertag, so wie "dayRain" für den
   Regen
-* **ET24**: Summe von ET für die letzten 24 Stunden, so wie rain24 für den
+* `ET24`: Summe von ET für die letzten 24 Stunden, so wie rain24 für den
   Regen
 
 #### Diagramme (ImageGenerator)
 
-'dayET' and 'ET24' werden nicht in Diagrammen benutzt.
+`dayET` and `ET24` werden nicht in Diagrammen benutzt.
 
 ### Spezielle abgeleitete meteorologische Größen
 
