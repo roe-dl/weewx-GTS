@@ -892,13 +892,12 @@ class GTSType(weewx.xtypes.XType):
         return weeutil.weeutil.genDaySpans(start_ts, stop_ts)
 
 
-    def calc_GDD_avg(self,obs_type,timespan,db_manager,method,base_t,limit_t,stop_t,islmt):
+    def gen_GDD_avg(self,obs_type,timespan,db_manager,method,base_t,limit_t,stop_t,islmt):
         """ calculate growing degree days based on the average of
             minimum and maximum temperature of the day or based of
             the average temperature of the day"""
         if not limit_t: limit_t = 1000.0
         if not stop_t: stop_t = 1000.0
-        total = 0.0
         count = 0
         try:
           for daySpan in self.__genDaySpans(islmt, timespan.start, timespan.stop):
@@ -931,7 +930,20 @@ class GTSType(weewx.xtypes.XType):
             if avg_t is not None:
                 # if the average is above upper limit set it to upper limit
                 if limit_t is not None and avg_t>limit_t: avg_t = limit_t
-                total += weewx.wxformulas.cooling_degrees(avg_t,base_t)
+                yield daySpan, weewx.wxformulas.cooling_degrees(avg_t,base_t)
+                count += 1
+        except Exception as e:
+          logerr(e)
+
+    def calc_GDD_avg(self,obs_type,timespan,db_manager,method,base_t,limit_t,stop_t,islmt):
+        """ calculate growing degree days based on the average of
+            minimum and maximum temperature of the day or based of
+            the average temperature of the day"""
+        total = 0.0
+        count = 0
+        try:
+            for _, day_val in self.gen_GDD_avg(obs_type,timespan,db_manager,method,base_t,limit_t,stop_t,islmt):
+                total += day_val
                 count += 1
         except Exception as e:
           logerr(e)
@@ -975,9 +987,9 @@ class GTSType(weewx.xtypes.XType):
                 _x = self.get_scalar(obs_type, _rec, db_manager, **option_dict)
                 if _x[0] is not None: 
                     n += 1
-                    if aggregate_type in ('count','not_null','has_data','exists'):
+                    if aggregate_type in ('count','not_null'):
                         pass
-                    elif aggregate_type=='avg':
+                    elif aggregate_type in ('avg','sum'):
                         val += _x[0]
                     elif aggregate_type in ('min','mintime'):
                         if _x[0]<val: 
@@ -992,10 +1004,8 @@ class GTSType(weewx.xtypes.XType):
                         valtime = _result[0]
                     else:
                         raise weewx.UnknownType("%s.%s: unknown aggregation type" % (obs_type,aggregate_type))
-            if aggregate_type in ('not_null','has_data'):
+            if aggregate_type in ('not_null'):
                 return weewx.units.ValueTuple(n>0,'boolean','group_boolean')
-            if aggregate_type=='exists':
-                return weewx.units.ValueTuple(True,'boolean','group_boolean')
             if aggregate_type=='count':
                 return weewx.units.ValueTuple(n,'count','group_count')
             if 'time' in aggregate_type:
@@ -1109,14 +1119,24 @@ class GTSType(weewx.xtypes.XType):
         # accumulated growing degree days
         if obs_type=='yearGDD' or obs_type=='seasonGDD':
             #loginf("GDD %s" % option_dict)
-            #loginf("GDD %s" % aggregate_type)
+            #loginf("GDD %s.%s" % (obs_type,aggregate_type))
+            if aggregate_type.lower()=='mintime':
+                return weewx.units.ValueTuple(timespan.start,'unix_epoch','group_time')
+            if aggregate_type.lower()=='maxtime':
+                return weewx.units.ValueTuple(timespan.stop,'unix_epoch','group_time')
+            if aggregate_type.lower()=='sum':
+                raise weewx.CannotCalculate("sum aggregation makes no sense for %s" % obs_type)
             if aggregate_type.lower()=='avg':
                 if timespan.start>time.time() or (timespan.start/2+timespan.stop/2)>time.time()+90000:
                     return weewx.units.ValueTuple(None,'degree_C_day','group_degree_days')
                 return self.get_scalar(obs_type,{'dateTime':(timespan.start/2+timespan.stop/2)},db_manager,**option_dict)
+            if aggregate_type.lower()=='min':
+                return self.get_scalar(obs_type,{'dateTime':timespan.start},db_manager,**option_dict)
+            if aggregate_type.lower()=='max':
+                return self.get_scalar(obs_type,{'dateTime':timespan.stop},db_manager,**option_dict)
             if aggregate_type.lower()=='last':
                 return self.get_scalar(obs_type,{'dateTime':timespan.stop},db_manager,**option_dict)
-            if aggregate_type.lower() in ('not_null','has_data'):
+            if aggregate_type.lower() in ('count','not_null'):
                 # year of the timespan start
                 year_timespan = weeutil.weeutil.archiveYearSpan(timespan.start)
                 # If timespan.start is already the start of the year, archiveYearSpan()
@@ -1130,12 +1150,15 @@ class GTSType(weewx.xtypes.XType):
                     'outTemp',
                     TimeSpan(year_timespan.start,timespan.start+86400),
                     db_manager,
-                    'not_null',
+                    aggregate_type,
                     86400,
                     **option_dict
                 )
                 try:
-                    val = min(val[0])
+                    if aggregate_type=='count':
+                        val = sum(val[0])
+                    else:
+                        val = min(val[0])
                 except (TypeError,ValueError,LookupError):
                     val = False
                 # If the timespan covers more than one year and the result is False
@@ -1145,12 +1168,15 @@ class GTSType(weewx.xtypes.XType):
                     val = weewx.xtypes.get_aggregate(
                         'outTemp',
                         TimeSpan(year_timespan.start,year_timespan.start+86400),
-                        'not_null',
+                        aggregate_type,
                         db_manager,
                         **option_dict
                     )[0]
                 # return result
-                return weewx.units.ValueTuple(val,'boolean','group_boolean')
+                if aggregate_type=='count':
+                    return weewx.units.ValueTuple(val,'count','group_count')
+                else:
+                    return weewx.units.ValueTuple(val,'boolean','group_boolean')
             raise weewx.UnknownAggregation("%s undefinded aggregation %s" % (obs_type,aggregate_type))
 
         # derived meteorological readings
@@ -1162,15 +1188,14 @@ class GTSType(weewx.xtypes.XType):
         if obs_type!='GTS' and obs_type!='GTSdate':
             raise weewx.UnknownType(obs_type)
         
-        if aggregate_type=='exists':
-            return weewx.units.ValueTuple(True,'boolean','group_boolean')
-        
         # aggregation types that are defined for those values
-        if aggregate_type not in ['avg','max','min','last','maxtime','mintime','lasttime','not_null','has_data']:
+        if aggregate_type not in ['sum','count','avg','max','min','last','maxtime','mintime','lasttime','not_null']:
             raise weewx.UnknownAggregation("%s undefinded aggregation %s" % (obs_type,aggregate_type))
 
         if timespan is None:
             raise weewx.CannotCalculate("%s %s no timespan" % (obs_type,aggregate_type))
+        if aggregate_type=='sum':
+            raise weewx.CannotCalculate("sum aggregation makes no sense for %s" % obs_type)
         if db_manager is None:
             if self.db_manager_ok:
                 logerr("%s: no database reference" % obs_type)
@@ -1188,6 +1213,7 @@ class GTSType(weewx.xtypes.XType):
         __maxtime = None
         __min = 10000000
         __mintime = None
+        __count = 0
         __ts = _soya_ts
         # Even if the time span starts after May 31st, the end value
         # is needed for some aggregations. So we have to calculate 
@@ -1198,12 +1224,15 @@ class GTSType(weewx.xtypes.XType):
             # update minimum and maximum
             if __ts in self.gts_values:
                 for __i,__val in enumerate(self.gts_values[__ts]):
-                    if __val is not None and __val>__max:
-                        __max = __val
-                        __maxtime = __ts+__i*86400
-                    if __val is not None and __val<__min:
-                        __min = __val
-                        __mintime = __ts+__i*86400
+                    if __val is not None and (__ts+__i*86400)>startOfDayTZ(timespan.start,__ts) and (__ts+__i*86400)<=timespan.stop:
+                        if __val>__max:
+                            __max = __val
+                            __maxtime = __ts+__i*86400
+                        if __val<__min:
+                            __min = __val
+                            __mintime = __ts+__i*86400
+                        if __val is not None:
+                            __count += 1
             # next year
             __ts=startOfYearTZ(__ts+31708800,self.lmt_tz)
         
@@ -1279,8 +1308,10 @@ class GTSType(weewx.xtypes.XType):
                 __x=weewx.units.ValueTuple(__min,'degree_C_day','group_degree_day')
             elif aggregate_type=='mintime':
                 __x=weewx.units.ValueTuple(__mintime,'unix_epoch','group_time')
-            elif aggregate_type in ('not_null','has_data'):
+            elif aggregate_type=='not_null':
                 __x = (__mintime is not None or __maxtime is not None,'boolean','group_boolean')
+            elif aggregate_type=='count':
+                __x = (__count,'count','group_count')
             else:
                 raise weewx.CannotCalculate("%s %s" % (obs_type,aggregate_type))
             """
@@ -1312,7 +1343,7 @@ class GTSType(weewx.xtypes.XType):
                 return weewx.units.ValueTuple(__x,'unix_epoch','group_time')
                     
         raise weewx.CannotCalculate("%s %s" % (obs_type,aggregate_type))
-
+    
 
 try:
     import user.barometer
@@ -1339,7 +1370,7 @@ class GTSService(StdService):
         self.GTSextension=GTSType(__lat,__lon,__svp_method)
         
         # Register the class
-        weewx.xtypes.xtypes.append(self.GTSextension)
+        weewx.xtypes.xtypes.insert(0,self.GTSextension)
         
         # Register the tags 
         # Note: This can be overwritten by the 'search_list' entry in skin_dict

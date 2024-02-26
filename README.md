@@ -97,6 +97,12 @@ The values can be used together with every time period defined in the customizat
 
 See http://weewx.com/docs/customizing.htm#Tags for details on how to use tags in skins.
 
+**Caution**: The aggregation `exists` only reports whether the observation
+type is included in the database or not. For pure XTypes like the observation
+types provided here it reports `False`. The behavior of `has_data` changed.
+It reports `False` for WeeWX up to version 4.10 and `True` for WeeWX from 
+version 5.0 on.
+
 #### Diagrams (ImageGenerator)
 
 To create diagrams you need to include additional sections into the \[ImageGenerator\] section of skin.conf. What follows are examples. There are more possibilities than that.
