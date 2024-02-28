@@ -1003,7 +1003,7 @@ class GTSType(weewx.xtypes.XType):
                         val = _x[0]
                         valtime = _result[0]
                     else:
-                        raise weewx.UnknownType("%s.%s: unknown aggregation type" % (obs_type,aggregate_type))
+                        raise weewx.UnknownAggregation("%s.%s: unknown aggregation type" % (obs_type,aggregate_type))
             if aggregate_type in ('not_null'):
                 return weewx.units.ValueTuple(n>0,'boolean','group_boolean')
             if aggregate_type=='count':
@@ -1018,6 +1018,8 @@ class GTSType(weewx.xtypes.XType):
             return weewx.units.ValueTuple(val,_x[1],_x[2])
         except weedb.OperationalError as e:
             raise weewx.CannotCalculate("%s.%s: Database OperationalError '%s'" % (obs_type,aggregate_type,e))
+        except (weewx.UnknownType,weewx.UnknownAggregation):
+            raise
         except (ValueError, TypeError, ArithmeticError, LookupError) as e:
             raise weewx.CannotCalculate("%s.%s: %s" % (obs_type,aggregate_type,e))
         return None
