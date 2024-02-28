@@ -139,6 +139,34 @@ These examples create image files named 'monthGTS.png' or 'yearGTS.png', respect
 <img src="yearGTS.png" />
 ```
 
+#### Diagrams (WDC skin)
+
+see [Using weewx-GTS in WDC wiki](https://github.com/Daveiano/weewx-wdc/wiki/Code-Snippets#using-weewx-gts)
+
+#### Diagrams (Belchertown skin)
+
+configuration in `graphs.conf`:
+
+```
+    [[Vegetation]]
+        #title = "Gr&uuml;nlandtemperatursumme"
+        title = "Vegetation"
+        aggregate_type = avg
+        yAxis_label = "Wachstumsgradtage"
+        yAxis_softMin = 100
+        yAxis_softMax = 200
+        exporting = 1
+        [[[GTS]]]
+            observation_type = GTS
+            name = "Gr&uuml;nlandtemperatursumme"
+        [[[yearGDD]]]
+            observation_type = yearGDD
+            name = "Wachstumsgradtage"
+        [[[seasonGDD]]]
+            observation_type = seasonGDD
+            name = "Wachstumsgradtage Saison"
+```
+
 ### Growing degree days
 
 #### Display values (CheetahGenerator)
@@ -189,6 +217,14 @@ into index.html.tmpl:
 ```
 <img src="yearGTS.png" />
 ```
+
+#### Diagrams (WDC skin)
+
+see [Using weewx-GTS in WDC wiki](https://github.com/Daveiano/weewx-wdc/wiki/Code-Snippets#using-weewx-gts)
+
+#### Diagrams (Belchertown skin)
+
+see above
 
 ### Evapotranspiration
 

@@ -73,3 +73,4 @@
 * added unit `pF_value`
 * changed docu regarding `yearGDD` and `seasonGDD` and database access
 * added aggregation type `not_null`
+* changes to deal with the new `weewx.xtypes.XTypeTable.get_aggregate()` function in WeeWX 5.0
