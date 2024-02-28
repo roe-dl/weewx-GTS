@@ -987,10 +987,14 @@ class GTSType(weewx.xtypes.XType):
                 _x = self.get_scalar(obs_type, _rec, db_manager, **option_dict)
                 if _x[0] is not None: 
                     n += 1
-                    if aggregate_type in ('count','not_null'):
+                    if aggregate_type=='count':
                         pass
+                    elif aggregate_type=='not_null':
+                        break
                     elif aggregate_type in ('avg','sum'):
                         val += _x[0]
+                    elif aggregate_type=='rms':
+                        val += _x[0]*_x[0]
                     elif aggregate_type in ('min','mintime'):
                         if _x[0]<val: 
                             val = _x[0]
@@ -999,9 +1003,11 @@ class GTSType(weewx.xtypes.XType):
                         if _x[0]>val: 
                             val = _x[0]
                             valtime = _result[0]
-                    elif aggregate_type=='last':
+                    elif aggregate_type in ('last','lasttime','first','firsttime'):
                         val = _x[0]
                         valtime = _result[0]
+                        if aggregate_type in ('first','firsttime'):
+                            break
                     else:
                         raise weewx.UnknownAggregation("%s.%s: unknown aggregation type" % (obs_type,aggregate_type))
             if aggregate_type in ('not_null'):
@@ -1009,16 +1015,19 @@ class GTSType(weewx.xtypes.XType):
             if aggregate_type=='count':
                 return weewx.units.ValueTuple(n,'count','group_count')
             if 'time' in aggregate_type:
+                # mintime, maxtime, firsttime, lasttime
                 return weewx.units.ValueTuple(valtime,'unix_epoch','group_time')
             if n==0:
                 _x = self.get_scalar(obs_type, None, None, **option_dict)
                 val = _x[0]
             elif aggregate_type=='avg': 
-                val /= n
+                val /= float(n)
+            elif aggregate_type=='rms':
+                val = pow(val/float(n),0.5)
             return weewx.units.ValueTuple(val,_x[1],_x[2])
         except weedb.OperationalError as e:
             raise weewx.CannotCalculate("%s.%s: Database OperationalError '%s'" % (obs_type,aggregate_type,e))
-        except (weewx.UnknownType,weewx.UnknownAggregation):
+        except (weewx.UnknownType,weewx.UnknownAggregation,weewx.CannotCalculate):
             raise
         except (ValueError, TypeError, ArithmeticError, LookupError) as e:
             raise weewx.CannotCalculate("%s.%s: %s" % (obs_type,aggregate_type,e))
