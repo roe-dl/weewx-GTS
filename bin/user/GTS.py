@@ -1381,7 +1381,19 @@ class GTSService(StdService):
         self.GTSextension=GTSType(__lat,__lon,__svp_method)
         
         # Register the class
-        weewx.xtypes.xtypes.insert(0,self.GTSextension)
+        archive_seen = False
+        summaries_seen = False
+        for idx,xtype in enumerate(weewx.xtypes.xtypes):
+            if (isinstance(xtype,weewx.xtypes.XTypeTable) or
+                                            (archive_seen and summaries_seen)):
+                weewx.xtypes.xtypes.insert(idx,self.GTSextension)
+                break
+            if isinstance(xtype,weewx.xtypes.ArchiveTable):
+                archive_seen = True
+            elif isinstance(xtype,weewx.xtypes.DailySummaries):
+                summaries_seen = True
+        else:
+            weewx.xtypes.xtypes.append(self.GTSextension)
         
         # Register the tags 
         # Note: This can be overwritten by the 'search_list' entry in skin_dict
