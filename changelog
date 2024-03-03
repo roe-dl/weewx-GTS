@@ -69,7 +69,7 @@
 * fix bug that caused exception if record is None
 * expose barometer algorithms to the user
 * fix bug that caused values of 1e10 or -1e10 in certain conditions
-1.1
+1.1 03mar2024
 * added unit `pF_value`
 * changed docu regarding `yearGDD` and `seasonGDD` and database access
 * added aggregation type `not_null`
