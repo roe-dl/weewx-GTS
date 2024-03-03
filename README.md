@@ -604,3 +604,5 @@ fully implements parameters to observation types.
 * [WeeWX homepage](http://weewx.com) - [WeeWX Wiki](https://github.com/weewx/weewx/wiki)
 * [Belchertown skin homepage](https://obrienlabs.net/belchertownweather-com-website-theme-for-weewx/) - [Belchertown skin Wiki](https://github.com/poblabs/weewx-belchertown/wiki)
 * [Wöllsdorf weather conditions](https://www.woellsdorf-wetter.de)
+* [XTypes performance](https://github.com/weewx/weewx/wiki/XTypes-performance)
+  (Read this article in case your skin creation lasts too long.)

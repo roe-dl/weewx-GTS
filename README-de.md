@@ -570,3 +570,6 @@ und mit `$daylight(timestamp=$X).length` für die Tageslichtlänge.
 * [WeeWX](http://weewx.com) - [WeeWX Wiki](https://github.com/weewx/weewx/wiki)
 * [Belchertown Skin](https://obrienlabs.net/belchertownweather-com-website-theme-for-weewx/) - [Belchertown skin Wiki](https://github.com/poblabs/weewx-belchertown/wiki)
 * [Wöllsdorfer Wetter](https://www.woellsdorf-wetter.de)
+* [XTypes performance](https://github.com/weewx/weewx/wiki/XTypes-performance)
+  (Dieser Artikel gibt Hinweise, wenn die HTML-Seiten-Erezugung zu lange
+  dauert.)
