@@ -9,6 +9,24 @@ XType-Erweiterung für WeeWX
 * `yearGDD` und `seasonGDD`
 * `aggregation_type` `GDD` zur Berechnung der Wachstumsgradtage nach verschiedenen Verfahren
 
+## Melden von Fehlern
+
+Wenn Sie Fehler melden wollen oder Hilfe benötigen, orientieren Sie sich
+bitte beim Einreichen eines Issues an dem Artikel 
+[Help! Posting to weewx user](https://github.com/weewx/weewx/wiki/Help!-Posting-to-weewx-user)
+bezüglich des Aufbaus und des Inhalts Ihres Issues.
+
+Beachten Sie, daß die Größen `GTS` und `yearGDD` nur berechnet werden
+können, wenn Temperaturdaten vom Beginn des Jahres an vorliegen. Wenn
+Ihre Datenbank nicht den ganzen Zeitraum vom Jahresanfang bis jetzt
+umfaßt, können diese Werte nicht berechnet werden.
+
+Wenn Ihnen die Erzeugung der Internet-Seiten in WeeWX zu lange dauert,
+lesen Sie bitte zuerst den WeeWX-Wiki-Artikel
+[XTypes performance](https://github.com/weewx/weewx/wiki/XTypes-performance),
+bevor Sie hier ein Issue einreichen. Wir können zwar versuchen, Dinge
+zu optimieren, sind aber an gewisse Grenzen gebunden.
+
 ## Installation:
 
 1) Download
@@ -571,5 +589,5 @@ und mit `$daylight(timestamp=$X).length` für die Tageslichtlänge.
 * [Belchertown Skin](https://obrienlabs.net/belchertownweather-com-website-theme-for-weewx/) - [Belchertown skin Wiki](https://github.com/poblabs/weewx-belchertown/wiki)
 * [Wöllsdorfer Wetter](https://www.woellsdorf-wetter.de)
 * [XTypes performance](https://github.com/weewx/weewx/wiki/XTypes-performance)
-  (Dieser Artikel gibt Hinweise, wenn die HTML-Seiten-Erezugung zu lange
+  (Dieser Artikel gibt Hinweise, wenn die HTML-Seiten-Erzeugung zu lange
   dauert.)

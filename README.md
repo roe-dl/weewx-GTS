@@ -11,11 +11,28 @@ XType extension for WeeWX to provide
 * observation types 'yearGDD' and 'seasonGDD'
 * aggregation type 'GDD'
 
+## Creating issues
+
+If you want to report bugs or need help, please, refer to 
+[Help! Posting to weewx user](https://github.com/weewx/weewx/wiki/Help!-Posting-to-weewx-user)
+for instructions. It applies here, too.
+
+Please note, that `GTS` and `yearGDD` require temperature data from
+January 1st on to be calculated. If your database does not cover the
+whole timespan, those values cannot be calculated. You will have to
+wait for the next year.
+
+If skin creation lasts too long for you, please, read the WeeWX wiki
+article
+[XTypes performance](https://github.com/weewx/weewx/wiki/XTypes-performance)
+first before creating an issue here. We can try to optimize things,
+but we cannot do magic.
+
 ## Installation instructions:
 
 1) download
 
-   ```
+   ```shell
    wget -O weewx-GTS.zip https://github.com/roe-dl/weewx-GTS/archive/master.zip
    ```
 
@@ -23,13 +40,13 @@ XType extension for WeeWX to provide
 
    WeeWX up to version 4.X
 
-   ```
+   ```shell
    sudo wee_extension --install weewx-GTS.zip
    ```
 
    WeeWX from version 5.0 on
 
-   ```
+   ```shell
    sudo weectl extension install weewx-GTS.zip
    ```
 
@@ -63,14 +80,14 @@ XType extension for WeeWX to provide
 
    for SysVinit systems:
 
-   ```
+   ```shell
    sudo /etc/init.d/weewx stop
    sudo /etc/init.d/weewx start
    ```
 
    for systemd systems:
 
-   ```
+   ```shell
    sudo systemctl stop weewx
    sudo systemctl start weewx
    ```
