@@ -46,7 +46,7 @@
     
 """
 
-VERSION = "1.0"
+VERSION = "1.1"
 
 if __name__ == '__main__':
     # for testing
