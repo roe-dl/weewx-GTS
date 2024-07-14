@@ -44,10 +44,18 @@ but we cannot do magic.
    sudo wee_extension --install weewx-GTS.zip
    ```
 
-   WeeWX from version 5.0 on
+   WeeWX from version 5.0 on and WeeWX packet installation
 
    ```shell
    sudo weectl extension install weewx-GTS.zip
+   ```
+
+   WeeWX from version 5.0 on and WeeWX pip installation into an virtual
+   environment
+
+   ```shell
+   source ~/weewx-venv/bin/activate
+   weectl extension install weewx-GTS.zip
    ```
 
 3) check configuration in weewx.conf
