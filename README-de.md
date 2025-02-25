@@ -23,7 +23,7 @@ umfaßt, können diese Werte nicht berechnet werden.
 
 Wenn Ihnen die Erzeugung der Internet-Seiten in WeeWX zu lange dauert,
 lesen Sie bitte zuerst den WeeWX-Wiki-Artikel
-[XTypes performance](https://github.com/weewx/weewx/wiki/XTypes-performance),
+[V5 Performance Troubleshooting](https://github.com/weewx/weewx/wiki/v5-performance-troubleshooting),
 bevor Sie hier ein Issue einreichen. Wir können zwar versuchen, Dinge
 zu optimieren, sind aber an gewisse Grenzen gebunden.
 

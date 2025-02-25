@@ -1,5 +1,5 @@
 # calculating Gruenlandtemperatursumme
-# Copyright (C) 2021, 2022, 2023, 2024 Johanna Roedenbeck
+# Copyright (C) 2021, 2022, 2023, 2024, 2025 Johanna Roedenbeck
 
 """
 
@@ -101,7 +101,7 @@
         
 """
 
-VERSION = "1.1"
+VERSION = "1.1.1"
 
 # deal with differences between python 2 and python 3
 try:
@@ -1274,7 +1274,7 @@ class GTSType(weewx.xtypes.XType):
                         __x=self.gts_values[_soya_ts][__a]
                     else:
                         __x=0
-                        for __i in xrange(__a,__b):
+                        for __i in range(__a,__b):
                             if self.gts_values[_soya_ts][__i] is not None:
                                 __x+=self.gts_values[_soya_ts][__i]
                         __x/=__b-__a

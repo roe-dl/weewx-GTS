@@ -24,9 +24,11 @@ wait for the next year.
 
 If skin creation lasts too long for you, please, read the WeeWX wiki
 article
-[XTypes performance](https://github.com/weewx/weewx/wiki/XTypes-performance)
+[V5 Performance Troubleshooting](https://github.com/weewx/weewx/wiki/v5-performance-troubleshooting)
 first before creating an issue here. We can try to optimize things,
-but we cannot do magic.
+but we cannot do magic. You may want to add the observation types
+`outSVP`, `outVaporP`, `outMixingRatio`, `outHumAbs`, 'outEquiTemp`,
+and/or `outThetaE` to your database.
 
 ## Installation instructions:
 

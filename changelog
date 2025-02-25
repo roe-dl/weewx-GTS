@@ -74,3 +74,6 @@
 * changed docu regarding `yearGDD` and `seasonGDD` and database access
 * added aggregation type `not_null`
 * changes to deal with the new `weewx.xtypes.XTypeTable.get_aggregate()` function in WeeWX 5.0
+1.1.1 25feb2025
+* fixed link to "XType Performance" wiki article
+* replace `xrange` with `range`, fixes #32
