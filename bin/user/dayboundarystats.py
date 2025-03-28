@@ -47,7 +47,7 @@
 
 """
 
-VERSION = "1.1.1"
+VERSION = "1.2"
 
 # deal with differences between python 2 and python 3
 try:
@@ -381,10 +381,25 @@ class DayboundaryTimeBinder(TimeBinder):
                               LMT=self.lmt,
                               **self.option_dict)
 
-    def LMTday(self, data_binding=None, days_ago=0):
-        return DayboundaryTimespanBinder(daySpanTZ(self.lmt_tz, 
-                              self.report_time, days_ago=days_ago),
-                              self.lmt, self.latlon, self.db_lookup, data_binding=data_binding,
+    def LMTday(self, timestamp=None, data_binding=None, days_ago=0):
+        dbin = data_binding
+        if timestamp:
+            # timestamp or timespan
+            try:
+                ts = (timestamp.timespan[0]+timestam.timespan[1])*0.5
+                self.db_lookup = timestamp.db_lookup
+                dbin = timestamp.data_binding if timestamp.data_binding else data_binding
+            except (LookupError,AttributeError):
+                try:
+                    ts = (timestamp[0]+timestamp[1])*0.5
+                except LookupError:
+                    ts = timestamp
+            ts = daySpanTZ(self.lmt_tz, ts, days_ago=days_ago)
+        else:
+            # day timespan (from antitransit to antitransit)
+            ts = daySpanTZ(self.lmt_tz, self.report_time, days_ago=days_ago)
+        return DayboundaryTimespanBinder(ts,
+                              self.lmt, self.latlon, self.db_lookup, data_binding=dbin,
                               context='day', formatter=self.formatter, converter=self.converter,
                               LMT=self.lmt,
                               **self.option_dict)
@@ -525,6 +540,30 @@ class DayboundaryTimespanBinder(TimespanBinder):
     # Iterate over days in the time period and return daylight timespan:
     def daylights(self, horizon=None, use_center=False):
         """ generator function that returns DayboundaryTimespanBinder """
+        alm = Almanac(self.timespan.start,
+                      self.latlon[0], 
+                      self.latlon[1], 
+                      altitude=self.latlon[2],
+                      temperature=15.0,
+                      pressure=1013.25,
+                      horizon=horizon,
+                      formatter=self.formatter,
+                      converter=self.converter)
+        almsun = alm.sun
+        if almsun.__class__.__name__=='SkyfieldAlmanacBinder':
+            binding = self.option_dict.get('skin_dict',{}).get('data_binding', 'wx_binding')
+            archive = self.db_lookup(binding)
+            for span in almsun.genVisibleTimespans(timespan=self.timespan,archive=archive):
+                yield DayboundaryTimespanBinder(span, 
+                                           self.lmt,
+                                           self.latlon, 
+                                           self.db_lookup, 
+                                           self.data_binding,
+                                           'day',
+                                           self.formatter,
+                                           self.converter,
+                                           **self.option_dict)
+            return
         # Note: span.start//2+span.stop//2 is used instead of 
         #       (span.start+span.stop)//2 to prevent overflow
         for span in genDaySpansWithoutDST(self.timespan.start,self.timespan.stop):

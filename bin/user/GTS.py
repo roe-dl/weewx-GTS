@@ -101,7 +101,7 @@
         
 """
 
-VERSION = "1.1.1"
+VERSION = "1.2"
 
 # deal with differences between python 2 and python 3
 try:

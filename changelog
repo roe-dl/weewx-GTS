@@ -77,3 +77,5 @@
 1.1.1 25feb2025
 * fixed link to "XType Performance" wiki article
 * replace `xrange` with `range`, fixes #32
+1.2
+* fixed speed issue with Skyfield daylight calculation
