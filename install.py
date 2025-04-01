@@ -19,12 +19,12 @@ class GTSInstaller(ExtensionInstaller):
             config={
               'StdWXCalculate':{
                 'Calculations':{
-                  'GTS':'software,archive',
-                  'GTSdate':'software,archive',
-                  'utcoffsetLMT':'software,archive',
-                  'dayET':'prefer_hardware,archive',
-                  'ET24':'prefer_hardware,archive',
-                  'yearGDD':'software,archive',
-                  'seasonGDD':'software,archive'}}},
+                  'GTS':['software','archive'],
+                  'GTSdate':['software','archive'],
+                  'utcoffsetLMT':['software','archive'],
+                  'dayET':['prefer_hardware','archive'],
+                  'ET24':['prefer_hardware','archive'],
+                  'yearGDD':['software','archive'],
+                  'seasonGDD':['software','archive']}}},
             files=[('bin/user', ['bin/user/GTS.py','bin/user/dayboundarystats.py','bin/user/barometer.py'])]
             )

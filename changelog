@@ -79,3 +79,4 @@
 * replace `xrange` with `range`, fixes #32
 1.2
 * fixed speed issue with Skyfield daylight calculation
+* fixed installer
